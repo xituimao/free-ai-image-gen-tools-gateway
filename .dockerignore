@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+storage/
+outputs/
+config.yaml
+*.zip
+.git/

@@ -1,0 +1,23 @@
+# 运行时
+storage/
+.run/
+config.yaml
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# 打包
+*.zip
+*.tar.gz
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store

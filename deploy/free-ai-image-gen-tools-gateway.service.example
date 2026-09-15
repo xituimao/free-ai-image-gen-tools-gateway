@@ -1,0 +1,22 @@
+# systemd 服务示例（云服务器常驻 + 开机自启）
+# 复制到 /etc/systemd/system/free-ai-image-gen-tools-gateway.service，改 WorkingDirectory/User，然后：
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now free-ai-image-gen-tools-gateway
+#   journalctl -u free-ai-image-gen-tools-gateway -f
+[Unit]
+Description=Unified AI Image Gateway
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/free-ai-image-gen-tools-gateway
+# 云端建议把凭证/密钥放环境变量，不写进 config.yaml
+Environment=ADMIN_TOKEN=change-me
+Environment=STORAGE_DIR=/data/imgw
+ExecStart=/usr/bin/python3 -m imggen.server
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

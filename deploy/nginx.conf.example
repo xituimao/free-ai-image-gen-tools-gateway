@@ -1,0 +1,27 @@
+# Nginx 反向代理示例（云服务器，HTTPS 域名对外）
+# 放到 /etc/nginx/conf.d/imgw.conf，改 server_name 与证书路径后 nginx -t && nginx -s reload
+server {
+    listen 80;
+    server_name img.yourdomain.com;
+    # 建议再用 certbot 申请证书并改成 443 + 301 跳转
+    client_max_body_size 12m;   # 与上传上限匹配
+
+    location / {
+        proxy_pass http://127.0.0.1:8799;
+        proxy_http_version 1.1;
+
+        # 关键：把真实协议/主机传给网关，网关据此拼出正确的绝对图片地址
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+
+        # SSE（HF 队列/事件流、MCP Streamable HTTP）需要关闭缓冲、放开长连接
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+    }
+
+    # MCP 端点 /mcp 走同一反代即可（上面的 SSE 配置已覆盖）；
+    # 如需单独限流或鉴权，可在此另写 location /mcp {} 块。
+}
