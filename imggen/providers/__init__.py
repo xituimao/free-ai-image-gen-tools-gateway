@@ -1,1 +1,1 @@
-"""provider 适配器集合。"""
+"""Provider adapter collection."""

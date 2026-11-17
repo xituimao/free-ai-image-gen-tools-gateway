@@ -1,8 +1,8 @@
-"""OpenAI 兼容协议适配器。
+"""OpenAI-compatible protocol adapter.
 
-任何提供 POST /images/generations 且返回 {data:[{b64_json|url}]} 的渠道
-都可以用它接入：OpenAI 官方、硅基流动、各类第三方中转。
-一个渠道对应一个实例（在 registry 中按配置展开）。
+Any channel providing POST /images/generations returning {data:[{b64_json|url}]}
+can be integrated via it: OpenAI official, SiliconFlow, and various third-party proxies.
+One channel corresponds to one instance (expanded by registry per config).
 """
 import base64
 
@@ -29,7 +29,7 @@ class OpenAICompatProvider(BaseProvider):
             "size": "%dx%d" % (req.width, req.height),
             "response_format": "b64_json",
         }
-        # 负向提示等额外参数透传（部分兼容渠道支持）
+        # negative prompt and other extra params pass-through (some compatible channels support)
         if req.negative_prompt:
             payload["negative_prompt"] = req.negative_prompt
         for k, v in (req.extra or {}).items():
@@ -41,7 +41,7 @@ class OpenAICompatProvider(BaseProvider):
             json=payload,
         )
         if r.status_code != 200:
-            raise ProviderError("%s 出图失败: HTTP %s %s" % (
+            raise ProviderError("%s image generation failed: HTTP %s %s" % (
                 self.name, r.status_code, r.text[:300]), status=r.status_code)
         data = r.json().get("data", [])
         out = []
@@ -53,5 +53,5 @@ class OpenAICompatProvider(BaseProvider):
                 if ir.status_code == 200:
                     out.append(ir.content)
         if not out:
-            raise ProviderError("%s 返回中没有图像" % self.name)
+            raise ProviderError("%s returned no image" % self.name)
         return out

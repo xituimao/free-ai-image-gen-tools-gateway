@@ -1,9 +1,9 @@
-"""Perchance 逆向适配器（免费、无需 key，尽力而为通道）。
+"""Perchance reverse adapter (free, no key needed, best-effort channel).
 
-Perchance 无官方 API，这里按其前端历史调用流程实现，可能随官网调整而失效：
-1. /api/verifyUser 拿匿名 userKey
-2. /api/generate 拿 imageId
-3. cdn.image-generation.perchance.org/download 下载图片
+Perchance has no official API; here implemented per its historical frontend call flow, may fail as the official site changes:
+1. /api/verifyUser to get anonymous userKey
+2. /api/generate to get imageId
+3. cdn.image-generation.perchance.org/download to download image
 """
 import random
 import time
@@ -30,16 +30,16 @@ class PerchanceProvider(BaseProvider):
         r = await client.get(API_HOST + "/api/verifyUser",
                              params={"__cacheBust": str(int(time.time() * 1000))})
         if r.status_code != 200:
-            raise ProviderError("perchance verifyUser 失败 HTTP %s" % r.status_code)
+            raise ProviderError("perchance verifyUser failed HTTP %s" % r.status_code)
         self._user_key = r.json().get("userKey")
         if not self._user_key:
-            raise ProviderError("perchance 未返回 userKey（可能被 Cloudflare 拦截）")
+            raise ProviderError("perchance returned no userKey (possibly blocked by Cloudflare)")
         return self._user_key
 
     async def _generate_once(self, client, req):
         key = await self._ensure_key(client)
         request_id = "req_%d" % random.randint(10 ** 6, 10 ** 7)
-        # 分辨率映射到 perchance 支持档位
+        # map resolution to perchance supported tiers
         long_side = max(req.width, req.height)
         if long_side <= 512:
             res = "512x512"
@@ -61,14 +61,14 @@ class PerchanceProvider(BaseProvider):
         r = await client.get(API_HOST + "/api/generate", params=params)
         if r.status_code != 200:
             self._user_key = None
-            raise ProviderError("perchance generate 失败 HTTP %s" % r.status_code)
+            raise ProviderError("perchance generate failed HTTP %s" % r.status_code)
         j = r.json()
         image_id = j.get("imageId")
         if not image_id:
             self._user_key = None
-            raise ProviderError("perchance 未返回 imageId: %s" % str(j)[:200])
+            raise ProviderError("perchance returned no imageId: %s" % str(j)[:200])
         dr = await client.get(CDN_HOST + "/download",
                               params={"imageId": image_id, "requestId": request_id})
         if dr.status_code != 200 or "image" not in dr.headers.get("content-type", ""):
-            raise ProviderError("perchance 下载失败 HTTP %s" % dr.status_code)
+            raise ProviderError("perchance download failed HTTP %s" % dr.status_code)
         return [dr.content]

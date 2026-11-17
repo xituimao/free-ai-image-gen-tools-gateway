@@ -1,8 +1,8 @@
-"""Provider 基类与统一数据结构。"""
+"""Provider base class and unified data structures."""
 
 
 class ImageRequest(object):
-    """一次生图请求的归一化表示。"""
+    """Normalized representation of a single image generation request."""
 
     def __init__(self, prompt, negative_prompt="", width=1024, height=1024,
                  n=1, model=None, seed=None, extra=None):
@@ -11,7 +11,7 @@ class ImageRequest(object):
         self.width = int(width)
         self.height = int(height)
         self.n = int(n) if n else 1
-        self.model = model              # provider 内部子模型
+        self.model = model              # provider internal sub-model
         self.seed = seed
         self.extra = extra or {}
 
@@ -28,16 +28,16 @@ class ProviderError(Exception):
 
 
 class BaseProvider(object):
-    """所有渠道适配器的基类。
+    """Base class for all channel adapters.
 
-    子类需实现 :meth:`available` 与 :meth:`generate`。
-    ``generate`` 返回 list[bytes]，长度等于请求的 n（若渠道不支持多图，
-    基类会自动循环补齐）。
+    Subclasses must implement :meth:`available` and :meth:`generate`.
+    ``generate`` returns list[bytes], length equals requested n (if channel doesn't support multiple images,
+    base class will automatically loop and pad).
     """
 
-    # 渠道类型: free=完全免费无需key / key=需要凭证
+    # Channel type: free=completely free no key needed / key=credentials required
     kind = "key"
-    # 是否支持一次请求出多张
+    # Whether multiple images supported per request
     supports_n = False
 
     def __init__(self, name, conf, timeout=120):
@@ -46,11 +46,11 @@ class BaseProvider(object):
         self.timeout = timeout
 
     def available(self):
-        """该渠道当前是否可用（开关 + 凭证是否齐全）。"""
+        """Whether this channel is currently available (switch + credentials complete)."""
         raise NotImplementedError
 
     def list_models(self):
-        """该渠道暴露的子模型列表，供 /v1/models 与控制台使用。"""
+        """List of sub-models exposed by this channel, used by /v1/models and the console."""
         m = self.conf.get("models")
         if m:
             return list(m)
@@ -58,12 +58,13 @@ class BaseProvider(object):
         return [dm] if dm else []
 
     def _generate_once(self, client, req):
-        """实际出一张/一批，返回 list[bytes]。子类实现。"""
+        """Generate one image or one batch, return list[bytes]. Subclasses implement.""""""
         raise NotImplementedError
 
     async def generate(self, client, req):
         images = await self._generate_once(client, req)
-        # 渠道不支持批量时用 while 补齐；固定 seed 时逐张偏移，避免出重复图
+        # When channel doesn't support batching, use while loop to pad; with fixed seed,
+        # offset per image to avoid duplicates.
         if not self.supports_n:
             base_seed = req.seed
             i = 0

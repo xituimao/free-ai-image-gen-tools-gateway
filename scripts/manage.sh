@@ -1,36 +1,36 @@
 #!/usr/bin/env bash
 # ============================================================
-# free-ai-image-gen-tools-gateway 统一管理脚本
-# 用法：./scripts/manage.sh <命令>
-# 命令：
-#   install    一键安装依赖 + 生成配置（首次使用）
-#   configure  交互式配置（部署模式 / admin_token / 各渠道 key）
-#   start      一键启动（后台运行，自动检测依赖和配置）
-#   stop       停止
-#   restart    重启
-#   status     状态（运行中/PID/端口/最近日志）
-#   logs       实时查看日志（Ctrl+C 退出）
-#   health     健康检查
-#   reload     热加载配置（不重启，调用 /admin/reload）
-#   uninstall  停止并移除 pid/log（不删除图片和配置）
+# free-ai-image-gen-tools-gateway unified management script
+# Usage: ./scripts/manage.sh <command>
+# Commands:
+#   install    One-click install dependencies + generate config (first time use)
+#   configure  Interactive configuration (deployment mode / admin_token / channel keys)
+#   start      One-click start (run in background, auto detect deps and config)
+#   stop       Stop
+#   restart    Restart
+#   status     Status (running/PID/port/recent logs)
+#   logs       View logs in real time (Ctrl+C to exit)
+#   health     Health check
+#   reload     Hot reload config (no restart, calls /admin/reload)
+#   uninstall  Stop and remove pid/log (does not delete images and config)
 # ============================================================
 set -euo pipefail
 
-# 项目根目录（脚本所在目录的上一级）
+# Project root directory (one level above script directory)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-# 运行时文件
+# Runtime files
 PID_FILE="$PROJECT_ROOT/.run/gateway.pid"
 LOG_FILE="$PROJECT_ROOT/.run/gateway.log"
 mkdir -p "$PROJECT_ROOT/.run"
 
-# Python 解释器
+# Python interpreter
 PY=python3
 command -v $PY >/dev/null 2>&1 || PY=python
 
-# 颜色
+# Colors
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
 
 info()  { echo -e "${CYAN}[INFO]${NC} $*"; }
@@ -38,7 +38,7 @@ ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 err()   { echo -e "${RED}[ERR]${NC} $*"; }
 
-# 读取配置中的 host/port（默认 127.0.0.1:8799）
+# Read host/port from config (default 127.0.0.1:8799)
 get_host() { $PY -c "
 import yaml, os
 try:
@@ -63,33 +63,33 @@ is_running() {
 }
 
 cmd_install() {
-  info "安装 Python 依赖..."
+  info "Installing Python dependencies..."
   $PY -m pip install -r requirements.txt
-  ok "依赖安装完成"
+  ok "Dependencies installed"
   if [ ! -f config.yaml ]; then
     cp config.example.yaml config.yaml
-    ok "已生成 config.yaml（从模板复制）"
-    warn "请执行 ./scripts/manage.sh configure 填写渠道 key 和 admin_token"
+    ok "config.yaml generated (copied from template)"
+    warn "Please run ./scripts/manage.sh configure to fill in channel keys and admin_token"
   else
-    info "config.yaml 已存在，跳过生成"
+    info "config.yaml already exists, skipping generation"
   fi
 }
 
 cmd_configure() {
-  info "交互式配置向导"
+  info "Interactive configuration wizard"
   echo ""
-  echo "=== 部署模式 ==="
-  echo "  1) 本机自用（127.0.0.1，无需 admin_token）"
-  echo "  2) 云服务器对外（0.0.0.0，必须设 admin_token）"
-  read -p "请选择 [1/2，默认1]: " mode
+  echo "=== Deployment mode ==="
+  echo "  1) Local personal use (127.0.0.1, no admin_token needed)"
+  echo "  2) Cloud server external (0.0.0.0, admin_token required)"
+  read -p "Please select [1/2, default 1]: " mode
   mode=${mode:-1}
 
   if [ "$mode" = "2" ]; then
     HOST="0.0.0.0"
-    read -p "设置 admin_token（管理接口鉴权，留空自动生成）: " ADMIN_TOKEN
+    read -p "Set admin_token (management interface auth, leave blank to auto-generate): " ADMIN_TOKEN
     if [ -z "$ADMIN_TOKEN" ]; then
       ADMIN_TOKEN=$($PY -c "import secrets; print(secrets.token_hex(16))")
-      info "自动生成 admin_token: $ADMIN_TOKEN"
+        info "Auto-generated admin_token: $ADMIN_TOKEN"
     fi
   else
     HOST="127.0.0.1"
@@ -97,13 +97,13 @@ cmd_configure() {
   fi
 
   echo ""
-  echo "=== 渠道配置（留空则不启用/不修改）==="
-  # 用临时 JSON 传递用户输入，避免 bash/Python 变量传递问题
+  echo "=== Channel configuration (leave blank to not enable/modify) ==="
+  # Use temporary JSON to pass user input, avoiding bash/Python variable passing issues
   TMP_JSON=$(mktemp)
   echo "{" > "$TMP_JSON"
   FIRST=1
   for ch in gemini siliconflow openai bailian hf_space bing; do
-    read -p "$ch API Key（留空跳过）: " val
+    read -p "$ch API Key (leave blank to skip): " val
     if [ -n "$val" ]; then
       [ $FIRST -eq 0 ] && echo "," >> "$TMP_JSON"
       echo "  \"$ch\": \"$val\"" >> "$TMP_JSON"
@@ -113,7 +113,7 @@ cmd_configure() {
   echo "" >> "$TMP_JSON"
   echo "}" >> "$TMP_JSON"
 
-  # 用 Python 合并配置（保留已有配置，只更新指定字段）
+  # Merge config with Python (preserve existing config, update specified fields only)
   $PY <<PYEOF
 import yaml, os, json
 path = "config.yaml"
@@ -145,75 +145,75 @@ for ch, val in user_keys.items():
     d[path_keys[-1]] = val
 with open(path, "w") as f:
     yaml.safe_dump(cfg, f, allow_unicode=True, sort_keys=False)
-print("配置已写入", path)
+print("Configuration written to", path)
 PYEOF
   rm -f "$TMP_JSON"
 
-  ok "配置完成"
+  ok "Configuration complete"
   if is_running; then
-    info "检测到服务正在运行，执行热加载..."
-    cmd_reload || warn "热加载失败，请执行 restart"
+    info "Service detected running, performing hot reload..."
+    cmd_reload || warn "Hot reload failed, please run restart"
   else
-    info "执行 ./scripts/manage.sh start 启动服务"
+    info "Run ./scripts/manage.sh start to start service"
   fi
 }
 
 cmd_start() {
   if is_running; then
     local pid=$(cat "$PID_FILE")
-    warn "服务已在运行（PID=$pid），如需重启请执行 restart"
+    warn "Service already running (PID=$pid), run restart if restart needed"
     return 0
   fi
-  # 自动安装依赖
+  # Auto install dependencies
   $PY -c "import fastapi, uvicorn, httpx, yaml, multipart" 2>/dev/null || {
-    info "首次运行，安装依赖..."
+    info "First run, installing dependencies..."
     $PY -m pip install -r requirements.txt
   }
-  # 自动生成配置
+  # Auto generate config
   [ -f config.yaml ] || cp config.example.yaml config.yaml
 
   local HOST=$(get_host); local PORT=$(get_port)
-  info "启动 free-ai-image-gen-tools-gateway（$HOST:$PORT）..."
+  info "Starting free-ai-image-gen-tools-gateway ($HOST:$PORT)..."
   nohup $PY -m imggen.server >> "$LOG_FILE" 2>&1 &
   echo $! > "$PID_FILE"
 
-  # 等待启动（最多15秒）
+  # Wait for startup (max 15 seconds)
   for i in $(seq 1 30); do
     sleep 0.5
     if curl -sf "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then
-      ok "启动成功（PID=$(cat $PID_FILE)）"
-      echo "  网页控制台: http://$HOST:$PORT/"
-      echo "  API 文档:   http://$HOST:$PORT/docs"
-      echo "  MCP 端点:   http://$HOST:$PORT/mcp"
-      echo "  日志文件:   $LOG_FILE"
+      ok "Start successful (PID=$(cat $PID_FILE))"
+        echo "  Web console: http://$HOST:$PORT/"
+        echo "  API docs:    http://$HOST:$PORT/docs"
+        echo "  MCP endpoint: http://$HOST:$PORT/mcp"
+        echo "  Log file:    $LOG_FILE"
       return 0
     fi
   done
-  err "启动超时，请查看日志: $LOG_FILE"
+  err "Start timed out, check logs: $LOG_FILE"
   tail -20 "$LOG_FILE"
   return 1
 }
 
 cmd_stop() {
   if ! is_running; then
-    warn "服务未运行"
+    warn "Service not running"
     rm -f "$PID_FILE"
     return 0
   fi
   local pid=$(cat "$PID_FILE")
-  info "停止服务（PID=$pid）..."
+  info "Stopping service (PID=$pid)..."
   kill "$pid" 2>/dev/null || true
-  # 等待退出（最多10秒）
+  # Wait for exit (max 10 seconds)
   for i in $(seq 1 20); do
     sleep 0.5
     kill -0 "$pid" 2>/dev/null || break
   done
   if kill -0 "$pid" 2>/dev/null; then
-    warn "优雅停止超时，强制 kill"
+    warn "Graceful stop timed out, force kill"
     kill -9 "$pid" 2>/dev/null || true
   fi
   rm -f "$PID_FILE"
-  ok "已停止"
+  ok "Stopped"
 }
 
 cmd_restart() {
@@ -223,55 +223,55 @@ cmd_restart() {
 }
 
 cmd_status() {
-  echo "=== free-ai-image-gen-tools-gateway 状态 ==="
+  echo "=== free-ai-image-gen-tools-gateway status ==="
   if is_running; then
     local pid=$(cat "$PID_FILE")
     local HOST=$(get_host); local PORT=$(get_port)
-    echo -e "  状态:   ${GREEN}运行中${NC}"
+    echo -e "  Status:   ${GREEN}Running${NC}"
     echo "  PID:    $pid"
-    echo "  地址:   http://$HOST:$PORT/"
+    echo "  Address:   http://$HOST:$PORT/"
     if curl -sf "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then
-      echo -e "  健康:   ${GREEN}正常${NC}"
+      echo -e "  Health:   ${GREEN}Normal${NC}"
       curl -s "http://127.0.0.1:$PORT/health" | $PY -m json.tool 2>/dev/null | head -5
     else
-      echo -e "  健康:   ${RED}异常（端口无响应）${NC}"
+      echo -e "  Health:   ${RED}Abnormal (port no response)${NC}"
     fi
   else
-    echo -e "  状态:   ${RED}未运行${NC}"
+    echo -e "  Status:   ${RED}Not running${NC}"
   fi
-  echo "  日志:   $LOG_FILE"
-  echo "  配置:   $PROJECT_ROOT/config.yaml"
+  echo "  Log:      $LOG_FILE"
+  echo "  Config:   $PROJECT_ROOT/config.yaml"
 }
 
 cmd_logs() {
   if [ ! -f "$LOG_FILE" ]; then
-    warn "日志文件不存在（服务可能从未启动）"
+    warn "Log file does not exist (service may never have started)"
     return 0
   fi
-  info "实时日志（Ctrl+C 退出）..."
+  info "Real-time logs (Ctrl+C to exit)..."
   tail -f "$LOG_FILE"
 }
 
 cmd_health() {
   local PORT=$(get_port)
   if curl -sf "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then
-    ok "服务健康"
+    ok "Service healthy"
     curl -s "http://127.0.0.1:$PORT/health"
     echo ""
   else
-    err "服务不健康（端口 $PORT 无响应）"
+    err "Service unhealthy (port $PORT no response)"
     return 1
   fi
 }
 
 cmd_reload() {
   if ! is_running; then
-    err "服务未运行，无法热加载"
+    err "Service not running, cannot hot reload"
     return 1
   fi
   local PORT=$(get_port)
   local TOKEN=""
-  # 从配置读取 admin_token
+  # Read admin_token from config
   TOKEN=$($PY -c "
 import yaml
 try:
@@ -279,26 +279,26 @@ try:
     print((c.get('server') or {}).get('admin_token', ''))
 except Exception: print('')
 " 2>/dev/null)
-  info "热加载配置..."
+  info "Hot reloading config..."
   if [ -n "$TOKEN" ]; then
     curl -sf -X POST "http://127.0.0.1:$PORT/admin/reload" -H "X-Admin-Token: $TOKEN" >/dev/null
   else
     curl -sf -X POST "http://127.0.0.1:$PORT/admin/reload" >/dev/null
   fi
-  ok "配置已热加载"
+  ok "Config hot reloaded"
 }
 
 cmd_uninstall() {
-  warn "即将停止服务并移除运行时文件（pid/log），不会删除图片和配置"
-  read -p "确认？[y/N]: " confirm
-  [ "$confirm" = "y" ] || [ "$confirm" = "Y" ] || { info "已取消"; return 0; }
+  warn "About to stop service and remove runtime files (pid/log), will not delete images and config"
+  read -p "Confirm? [y/N]: " confirm
+  [ "$confirm" = "y" ] || [ "$confirm" = "Y" ] || { info "Cancelled"; return 0; }
   cmd_stop
   rm -rf "$PROJECT_ROOT/.run"
-  ok "已清理运行时文件"
-  info "图片和配置保留在: $PROJECT_ROOT/storage 和 $PROJECT_ROOT/config.yaml"
+  ok "Runtime files cleaned"
+  info "Images and config retained in: $PROJECT_ROOT/storage and $PROJECT_ROOT/config.yaml"
 }
 
-# 主入口
+# Main entry
 case "${1:-help}" in
   install)   cmd_install ;;
   configure) cmd_configure ;;
@@ -311,25 +311,25 @@ case "${1:-help}" in
   reload)    cmd_reload ;;
   uninstall) cmd_uninstall ;;
   help|--help|-h)
-    echo "free-ai-image-gen-tools-gateway 管理脚本"
+    echo "free-ai-image-gen-tools-gateway management script"
     echo ""
-    echo "用法: ./scripts/manage.sh <命令>"
+    echo "Usage: ./scripts/manage.sh <command>"
     echo ""
-    echo "命令:"
-    echo "  install    安装依赖 + 生成配置（首次使用）"
-    echo "  configure  交互式配置（部署模式/admin_token/渠道key）"
-    echo "  start      启动（后台运行）"
-    echo "  stop       停止"
-    echo "  restart    重启"
-    echo "  status     状态"
-    echo "  logs       实时日志"
-    echo "  health     健康检查"
-    echo "  reload     热加载配置（不重启）"
-    echo "  uninstall  停止并清理运行时文件"
+    echo "Commands:"
+    echo "  install    Install dependencies + generate config (first time use)"
+    echo "  configure  Interactive configuration (deployment mode/admin_token/channel key)"
+    echo "  start      Start (run in background)"
+    echo "  stop       Stop"
+    echo "  restart    Restart"
+    echo "  status     Status"
+    echo "  logs       Real-time logs"
+    echo "  health     Health check"
+    echo "  reload     Hot reload config (no restart)"
+    echo "  uninstall  Stop and clean up runtime files"
     ;;
   *)
-    err "未知命令: $1"
-    echo "执行 ./scripts/manage.sh help 查看可用命令"
+    err "Unknown command: $1"
+    echo "Run ./scripts/manage.sh help to see available commands"
     exit 1
     ;;
 esac

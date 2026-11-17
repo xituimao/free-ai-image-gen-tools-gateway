@@ -1,4 +1,4 @@
-"""Provider 注册表：按配置实例化全部渠道，负责名称路由。"""
+"""Provider registry: instantiates all channels from config, responsible for name routing."""
 import time
 
 from .catalog import get_meta, TYPE_LABEL
@@ -18,7 +18,7 @@ class Registry(object):
         self.conf = conf
         self.timeout = (conf.get("server") or {}).get("timeout", 120)
         self.providers = {}
-        self.cooldown = {}      # provider -> 冷却截止时间戳
+        self.cooldown = {}      # provider -> cooldown expiry timestamp
         self._build()
 
     def _build(self):
@@ -40,19 +40,19 @@ class Registry(object):
         if "bing" in prov:
             put("bing", BingProvider, prov["bing"])
 
-        # OpenAI 兼容渠道展开：每个子渠道一个实例，直接用子渠道名
+        # OpenAI compatible channel expansion: one instance per sub-channel, directly use sub-channel name
         oc = prov.get("openai_compatible") or {}
         for sub_name, sub_conf in oc.items():
             self.providers[sub_name] = OpenAICompatProvider(
                 sub_name, sub_conf, self.timeout)
 
-    # ---------- 路由 ----------
+    # ---------- Routing ----------
 
     def resolve(self, model_id):
-        """把 'provider/sub-model' 解析为 (provider, sub_model)。
+        """Parse 'provider/sub-model' into (provider, sub_model).
 
-        provider 名做最长匹配，因为子模型名本身可能含斜杠
-        （如 black-forest-labs/FLUX.2-flex）。
+        Provider name uses longest match because sub-model names may themselves contain slashes
+        (e.g. black-forest-labs/FLUX.2-flex).
         """
         if not model_id:
             return None, None
@@ -65,10 +65,10 @@ class Registry(object):
                     best = name
         if best:
             return self.providers[best], model_id[len(best) + 1:]
-        raise ProviderError("未知 provider/model: %s" % model_id, status=404)
+        raise ProviderError("Unknown provider/model: %s" % model_id, status=404)
 
     def default_chain(self):
-        """配置里写死的优先骨架（只保留实际存在的名字）。"""
+        """Hardcoded priority skeleton from config (only keep names that actually exist)."""
         chain = (self.conf.get("server") or {}).get("default_chain") or []
         return [n for n in chain if n in self.providers]
 
@@ -79,13 +79,14 @@ class Registry(object):
             return False
 
     def build_auto_chain(self):
-        """自动模式的完整优先列表，规则：
+        """Auto mode complete priority list, rules:
 
-        1. default_chain 里的通道按配置顺序排前面（用户的显式优先级）；
-        2. 其余“当前可用(已配置凭证/免费)”的通道自动补到后面，免费的优先，
-           —— 因此新配的渠道不用手动加列表也会被自动模式用到；
-        3. 不可用（没启用/缺 key）的通道直接剔除，不做无意义尝试；
-        4. 处于失败冷却期的通道排到最后。
+        1. Channels in default_chain are sorted first in config order (user's explicit priority);
+        2. The remaining "currently available (credentials configured/free)" channels are auto-appended
+           at the end, free ones first;
+            -- thus newly configured channels will also be used by auto mode without manually adding to the list;
+        3. Unavailable (not enabled/missing key) channels are removed directly, no meaningless attempts;
+        4. Channels in failure cooldown period are moved to the end.
         """
         import time
         skeleton = self.default_chain()
@@ -103,12 +104,12 @@ class Registry(object):
             push(n)
 
         rest = [n for n in self.providers if n not in in_list]
-        # 免费通道优先，其次按配置出现顺序
+        # Free channels first, then by config appearance order
         rest.sort(key=lambda n: 0 if self.providers[n].kind == "free" else 1)
         for n in rest:
             push(n)
 
-        # 失败冷却：冷却中的移到末尾
+        # Failure cooldown: move cooling ones to end
         now = time.time()
         warm = [n for n in result if self.cooldown.get(n, 0) <= now]
         cooling = [n for n in result if self.cooldown.get(n, 0) > now]
@@ -116,7 +117,7 @@ class Registry(object):
 
     def mark_failure(self, name, seconds=30):
         import time
-        # 只记录 provider 部分
+        # Only record the provider part
         prov = name.split("/", 1)[0]
         self.cooldown[prov] = time.time() + seconds
 
@@ -125,7 +126,7 @@ class Registry(object):
         self.cooldown.pop(prov, None)
 
     def cooling_info(self):
-        """冷却中的通道及剩余秒，供控制台显示恢复进度。"""
+        """Channels in cooldown and remaining seconds, for console to display recovery progress."""
         now = time.time()
         out = []
         for name, until in self.cooldown.items():
@@ -135,7 +136,7 @@ class Registry(object):
         return out
 
     def provider_status(self):
-        """渠道管理用：每个第三方渠道的状态汇总（凭证只回是否已设置，不回明文）。"""
+        """Channel management: status summary of each third-party channel (credentials only report whether set, not plaintext)."""
         now = time.time()
         auto = self.build_auto_chain()
         out = []
@@ -165,7 +166,7 @@ class Registry(object):
                 "models": p.list_models(), "creds": creds,
                 "in_chain": name in auto,
             })
-        # 可用优先，其次免费
+        # Available first, then free
         out.sort(key=lambda x: (not x["available"], x["type"] != "free"))
         return out
 
@@ -179,7 +180,7 @@ class Registry(object):
         }
 
     def list_models(self):
-        """供 /v1/models：列出每个渠道的全部可选模型及可用状态。"""
+        """For /v1/models: list all optional models per channel and their availability status."""
         out = []
         for name, p in self.providers.items():
             avail = False
@@ -201,10 +202,10 @@ class Registry(object):
     async def dispatch(self, client, model_id, req):
         p, sub = self.resolve(model_id)
         if p is None:
-            raise ProviderError("未指定 provider 且无法解析: %r" % model_id)
+            raise ProviderError("No provider specified and unable to resolve: %r" % model_id)
         req.model = sub
         if not p.available():
-            raise ProviderError("渠道 %s 当前不可用（未启用或缺少凭证）" % p.name)
+            raise ProviderError("Channel %s currently unavailable (not enabled or missing credentials)" % p.name)
         return await p.generate(client, req)
 
 

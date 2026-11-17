@@ -1,4 +1,4 @@
-# 运行时
+# Runtime
 storage/
 .run/
 config.yaml
@@ -12,7 +12,7 @@ __pycache__/
 venv/
 env/
 
-# 打包
+# Packaging
 *.zip
 *.tar.gz
 

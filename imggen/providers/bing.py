@@ -1,10 +1,10 @@
-"""Bing Image Creator 适配器（后端为 DALL-E 3，免费但需账号 cookie）。
+"""Bing Image Creator adapter (backend is DALL-E 3, free but requires account cookie).
 
-用法：浏览器登录 www.bing.com，从 cookie 复制 _U 的值填入 config。
-流程（非官方，可能随前端调整）：
-1. POST /images/create?q=...  从 302 Location 解析批次 id
-2. GET  /images/create/async/results/<id> 轮询，正则提取 mimg 图片地址
-3. 下载图片
+Usage: log in to www.bing.com in browser, copy _U cookie value into config.
+Flow (unofficial, may change with frontend):
+1. POST /images/create?q=...  parse batch id from 302 Location
+2. GET /images/create/async/results/<id> poll, regex-extract mimg image URLs
+3. Download images
 """
 import asyncio
 import re
@@ -13,7 +13,7 @@ from urllib.parse import quote, urlparse, parse_qs
 from .base import BaseProvider, ProviderError
 
 IMG_RE = re.compile(r'<img[^>]+class="?mimg"?[^>]*src="([^"]+)"')
-# 兜底：任何 src2 链接
+# Fallback: any src2 link
 SRC2_RE = re.compile(r'src2="([^"]+)"')
 
 
@@ -37,17 +37,17 @@ class BingProvider(BaseProvider):
         r = await client.post(create_url, cookies=cookies, headers=headers,
                               follow_redirects=False)
         if r.status_code not in (301, 302):
-            raise ProviderError("bing create 未重定向: HTTP %s %s" % (
+            raise ProviderError("bing create did not redirect: HTTP %s %s" % (
                 r.status_code, r.text[:200]), status=r.status_code)
         location = r.headers.get("location", "")
-        # Location 形如 /images/create/async/results/<id1>?q=...&id=<id2>
+        # Location looks like /images/create/async/results/<id1>?q=...&id=<id2>
         m = re.search(r'/results/([^?]+)', location)
         if not m:
-            # 有时直接带 id 参数
+            # sometimes carries id parameter directly
             qs = parse_qs(urlparse(location).query)
             ids = qs.get("id")
             if not ids:
-                raise ProviderError("bing 无法解析批次 id: %s" % location)
+                raise ProviderError("bing could not parse batch id: %s" % location)
             batch_id = ids[0]
         else:
             batch_id = m.group(1)
@@ -68,7 +68,7 @@ class BingProvider(BaseProvider):
             await asyncio.sleep(2)
             waited += 2
         if not urls:
-            raise ProviderError("bing 轮询超时或被风控（cookie 可能失效）")
+            raise ProviderError("bing polling timed out or rate-limited (cookie may be invalid)")
 
         out = []
         for u in urls[:req.n]:
@@ -76,5 +76,5 @@ class BingProvider(BaseProvider):
             if ir.status_code == 200:
                 out.append(ir.content)
         if not out:
-            raise ProviderError("bing 图片下载失败")
+            raise ProviderError("bing image download failed")
         return out

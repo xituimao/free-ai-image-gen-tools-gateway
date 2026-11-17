@@ -1,8 +1,8 @@
-"""Google Gemini（Nano Banana）适配器，走 AI Studio REST 接口。
+"""Google Gemini (Nano Banana) adapter, using AI Studio REST interface.
 
-免费 key 在 https://aistudio.google.com/apikey 申请，免费层每天有固定配额。
+Get a free key at https://aistudio.google.com/apikey; free tier has a fixed daily quota.
 POST /v1beta/models/<model>:generateContent
-返回 candidates[].content.parts[].inlineData.data (base64)。
+Returns candidates[].content.parts[].inlineData.data (base64).
 """
 import base64
 
@@ -31,11 +31,11 @@ class GeminiProvider(BaseProvider):
             "generationConfig": {"responseModalities": ["IMAGE", "TEXT"]},
         }
         url = "%s/models/%s:generateContent" % (base, model)
-        # G7: key 走请求头，避免出现在 URL/访问日志中
+        # G7: key goes in request header to avoid appearing in URL/access logs
         r = await client.post(url, json=payload,
                               headers={"x-goog-api-key": key})
         if r.status_code != 200:
-            raise ProviderError("gemini 出图失败: HTTP %s %s" % (
+            raise ProviderError("gemini image generation failed: HTTP %s %s" % (
                 r.status_code, r.text[:300]), status=r.status_code)
         out = []
         for cand in r.json().get("candidates", []):
@@ -44,5 +44,5 @@ class GeminiProvider(BaseProvider):
                 if inline and inline.get("data"):
                     out.append(base64.b64decode(inline["data"]))
         if not out:
-            raise ProviderError("gemini 返回中没有图像（可能触发安全过滤或配额用尽）")
+            raise ProviderError("gemini returned no image (possibly safety filter triggered or quota exhausted)")
         return out

@@ -1,12 +1,12 @@
-"""命令行入口。
+"""Command line entry.
 
-示例:
-  python -m imggen.cli models                     # 查看全部渠道及可用状态
-  python -m imggen.cli "一只穿西装的柯基"          # 走默认链
-  python -m imggen.cli "赛博朋克城市" -p gemini    # 指定渠道
-  python -m imggen.cli "猫" -p pollinations,gemini # 按顺序 fallback
-  python -m imggen.cli "猫" -o cat.png --size 768x512
-  python -m imggen.cli serve                      # 启动网关服务(API+网页)
+Example:
+  python -m imggen.cli models                     # View all channels and their availability
+  python -m imggen.cli "a corgi wearing a suit"          # Use default chain
+  python -m imggen.cli "cyberpunk city" -p gemini    # Specify channel
+  python -m imggen.cli "cat" -p pollinations,gemini # Fallback in order
+  python -m imggen.cli "cat" -o cat.png --size 768x512
+  python -m imggen.cli serve                      # Start gateway service (API+web)
 """
 import argparse
 import asyncio
@@ -58,7 +58,7 @@ async def run_gen(args):
     except Exception:
         w, h = 1024, 1024
 
-    # C1: 默认走完整自动链（剔除不可用、自动补免费通道、冷却沉底），与服务端一致
+    # C1: Default full auto chain (excluding unavailable, automatically adding free channels, cooling sink), consistent with service
     chain = args.provider.split(",") if args.provider else reg.build_auto_chain()
     req = ImageRequest(prompt=args.prompt, negative_prompt=args.negative,
                        width=w, height=h, n=args.n, seed=args.seed)
@@ -73,9 +73,9 @@ async def run_gen(args):
                 errors.append("%s -> %s" % (target, e))
         else:
             if not chain:
-                print("没有任何已启用且可用的通道，请在 config.yaml 启用/填写凭证")
+                print("No available enabled channel, please enable/fill credentials in config.yaml")
             else:
-                print("全部通道失败:")
+                print("All channels failed:")
                 for e in errors:
                     print("  ", e)
             try:
@@ -88,7 +88,7 @@ async def run_gen(args):
                 pass
             return 1
 
-    # 统一归档到会话目录（与服务端一致）；-o 时额外复制到指定路径
+    # Uniformly archive to session directory (consistent with server); -o additionally copies to specified path
     from .storage import Storage
     storage = Storage(storage_dir)
     sid = args.session or "default"
@@ -113,32 +113,32 @@ async def run_gen(args):
             paths.append(args.output)
         else:
             paths.append(os.path.join(img_dir, rec["files"][i]))
-    print("成功渠道: %s | 会话: %s" % (target, sid))
+    print("Successfully archived: %s | session: %s" % (target, sid))
     if tried:
-        print("之前试过并跳过: %s" % ", ".join(tried))
+        print("Previously tried and skipped: %s" % ", ".join(tried))
     for p in paths:
-        print("已保存:", p)
+        print("Saved:", p)
     return 0
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="imggen", description="统一生图 CLI")
+    parser = argparse.ArgumentParser(prog="imggen", description="Unified Image Generation CLI")
     sub = parser.add_subparsers(dest="cmd")
 
-    g = sub.add_parser("gen", help="生成图片（默认命令，可省略 gen）")
+    g = sub.add_parser("gen", help="Generate image (default command, can omit gen)")
     g.add_argument("prompt")
-    g.add_argument("-p", "--provider", help="渠道，多个用逗号分隔做 fallback")
-    g.add_argument("-o", "--output", help="额外复制到该文件路径")
-    g.add_argument("-s", "--session", default="default", help="归档到哪个会话，默认 default")
+    g.add_argument("-p", "--provider", help="Channel, multiple separated by commas for fallback")
+    g.add_argument("-o", "--output", help="Additionally copy to this file path")
+    g.add_argument("-s", "--session", default="default", help="Archive to which session, default default")
     g.add_argument("--size", default="1024x1024")
     g.add_argument("-n", type=int, default=1)
     g.add_argument("--seed", type=int, default=None)
     g.add_argument("--negative", default="")
 
-    sub.add_parser("models", help="列出渠道")
-    sub.add_parser("serve", help="启动 API + 网页网关")
+    sub.add_parser("models", help="List channels")
+    sub.add_parser("serve", help="Start API + web gateway")
 
-    # 支持省略 gen：imggen "prompt" ...
+    # Support omitting gen: imggen "prompt" ...
     if len(sys.argv) > 1 and sys.argv[1] not in ("gen", "models", "serve"):
         sys.argv.insert(1, "gen")
 

@@ -1,7 +1,7 @@
-"""统一使用日志：记录所有接入方（API / MCP / CLI / Web）的调用，供控制台展示。
+"""Unified usage log: records calls from all access methods (API / MCP / CLI / Web) for console display.
 
-日志文件：<storage_dir>/usage.jsonl，每行一条 JSON。
-写操作用 fcntl.flock 排他锁，保证多进程并发安全（不只是单进程线程锁）。
+Log file: <storage_dir>/usage.jsonl, one JSON per line.
+Write operations use fcntl.flock exclusive lock to ensure multi-process concurrency safety (not just single-process thread lock).
 """
 import contextlib
 import json
@@ -13,13 +13,13 @@ try:
     import fcntl
     _HAS_FCNTL = True
 except ImportError:
-    # Windows 等不支持 fcntl 的平台，降级为仅线程锁（单进程内安全）
+    # Platforms like Windows that do not support fcntl degrade to thread lock only (safe within a single process)
     fcntl = None
     _HAS_FCNTL = False
 
 
 class UsageLogger(object):
-    MAX_SCAN = 50000  # 单次查询最多扫描行数，防止超大日志文件撑爆内存
+    MAX_SCAN = 50000  # Maximum lines scanned per query to prevent oversized log files from exhausting memory
 
     def __init__(self, path):
         self.path = path
@@ -28,9 +28,9 @@ class UsageLogger(object):
 
     @contextlib.contextmanager
     def _file_lock(self, exclusive=False):
-        """跨进程文件锁：写用排他锁，读用共享锁。
-        不支持 fcntl 的平台（如 Windows）降级为无文件锁（仍有线程锁）。"""
-        # 用 a+ 打开以确保文件存在，且不截断
+        """Cross-process file lock: writes use exclusive lock, reads use shared lock.
+        Platforms that do not support fcntl (e.g., Windows) degrade to no file lock (still have thread lock)."""
+        # Open with a+ to ensure the file exists and not truncate
         f = open(self.path, "a+", encoding="utf-8")
         try:
             if _HAS_FCNTL:
@@ -46,12 +46,12 @@ class UsageLogger(object):
             f.close()
 
     def log(self, transport, client, action, trusted=False, **fields):
-        """写一条使用日志。
+        """Write one usage log entry.
 
         transport: api / mcp / cli / web
         action: generate / configure / history / providers / upload / test / compare / heartbeat
-        trusted: 接入方名是否可信（web/mcp/cli 服务端注入=True，外部 api 自报=False）
-        fields 常用: provider, session_id, prompt, status(success/fail),
+        trusted: whether the accessor name is trusted (web/mcp/cli server-injected=True, external API self-reported=False)
+        fields commonly used: provider, session_id, prompt, status(success/fail),
                     error, duration_ms, n, bytes, model
         """
         rec = {"ts": time.time(),
@@ -67,7 +67,7 @@ class UsageLogger(object):
                 f.flush()
 
     def _read_all(self):
-        """读取全部日志行，返回 (rows, scanned)。scanned 为实际扫描行数。"""
+        """Read all log lines, return (rows, scanned). scanned is the actual number of lines scanned."""
         rows = []
         scanned = 0
         if not os.path.exists(self.path):
@@ -128,7 +128,7 @@ class UsageLogger(object):
                 "data": page}
 
     def clients(self, active_window=300):
-        """聚合每个接入方的统计与状态。active_window 秒内有调用视为在线。"""
+        """Aggregate statistics and status per access method. Accesses within active_window seconds are considered online."""
         agg = {}
         now = time.time()
         for r in self._iter():

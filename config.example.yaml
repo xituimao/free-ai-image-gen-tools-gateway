@@ -1,60 +1,60 @@
 # ============================================================
-# 统一生图网关配置 —— 复制为 config.yaml 后按需填写
-# 所有 api_key 也可以不写在这里，改用同名环境变量，例如 GEMINI_API_KEY
+# Unified Image Gateway Configuration —— Copy to config.yaml and fill as needed
+# All api_key can also be omitted here, use same-named environment variables, e.g., GEMINI_API_KEY
 # ============================================================
 
 server:
-  # 本机自用保持 127.0.0.1；部署到云服务器对外提供时改为 0.0.0.0
-  # （云主机记得在安全组放行 port，并务必设置下面的 admin_token）
+  # Keep 127.0.0.1 for local use; change to 0.0.0.0 when deploying to cloud server for external access
+  # (Remember to open the port in the cloud host's security group and be sure to set the admin_token below)
   host: 127.0.0.1
   port: 8799
-  # 默认调用链：请求里不指定 provider 时，按此顺序依次尝试，第一个成功即返回
-  # 免费通道排前面，收费/需key的兜底
+  # Default call chain: when no provider is specified in the request, try in this order, return on first success
+  # Put free channels first, paid/key-required as fallback
   default_chain:
     - pollinations
     - gemini
     - siliconflow
     - bailian
-  # 单通道读取超时（秒）；连接超时固定 15s。ZeroGPU 冷启动排队慢时可调大
+  # Single channel read timeout (seconds); connection timeout fixed at 15s. Increase if ZeroGPU cold start queue is slow
   timeout: 120
-  # 统一资源目录：所有生成/上传图片按会话存在这里（storage/sessions/<会话>/）。
-  # 可写相对路径（相对项目根）或绝对路径；云上建议指向挂载的数据盘，例如 /data/imgw
+  # Unified resource directory: all generated/uploaded images are stored here by session (storage/sessions/<session>/).
+  # Can write relative path (relative to project root) or absolute path; on cloud, recommend pointing to a mounted data disk, e.g., /data/imgw
   storage_dir: storage
-  # 管理接口 /admin/reload 的鉴权 token（也可用环境变量 ADMIN_TOKEN）。
-  # 留空时仅允许本机回环调用；host 改成 0.0.0.0 对外时强烈建议设置。
+  # Authentication token for management interface /admin/reload (also can use environment variable ADMIN_TOKEN).
+  # If left empty, only allow local loopback calls; when host is changed to 0.0.0.0 for external access, strongly recommend setting.
   admin_token: ""
-  # 返回图片绝对地址用的对外基础地址。留空则自动识别（含反向代理 X-Forwarded-*）。
-  # 经域名/HTTPS 对外、或自动识别不对时可显式指定，例如 https://img.yourdomain.com
+  # External base URL used for returning absolute image addresses. If left empty, auto-detect (including reverse proxy X-Forwarded-*).
+  # Can be explicitly specified when accessing via domain/HTTPS externally or when auto-detection is incorrect, e.g., https://img.yourdomain.com
   public_base_url: ""
-  # 经 Nginx 等反向代理时，需让 uvicorn 信任哪些来源的代理头；
-  # 云上对全网放行可设为 "*"，本机直连保持 127.0.0.1
+  # When using Nginx or other reverse proxies, need to let uvicorn trust which sources' proxy headers;
+  # On cloud, can set to "*" for full network access; for local direct connection, keep 127.0.0.1
   forwarded_allow_ips: 127.0.0.1
 
 providers:
 
-  # ---------- 1. 完全免费、无需 key（保底通道，开箱即用） ----------
+  # ---------- 1. Completely free, no key required (fallback channel, ready to use) ----------
   pollinations:
     enabled: true
     base_url: https://image.pollinations.ai
-    model: sana            # 匿名免费档当前模型
-    # 可用参数: width / height / seed / nologo
+    model: sana            # Anonymous free tier current model
+    # Available parameters: width / height / seed / nologo
 
-  # ---------- 2. Google Gemini（AI Studio 免费 key，Nano Banana） ----------
-  # 免费申请: https://aistudio.google.com/apikey （免费层每天有配额）
+  # ---------- 2. Google Gemini (AI Studio free key, Nano Banana) ----------
+  # Free application: https://aistudio.google.com/apikey (free tier has daily quota)
   gemini:
     enabled: false
     api_key: ""
     model: gemini-2.5-flash-image
     base_url: https://generativelanguage.googleapis.com/v1beta
 
-  # ---------- 3. OpenAI 兼容协议渠道（一份协议，可配任意多家） ----------
-  # 每个子项都是一个独立渠道：硅基流动 / OpenAI 官方 / 第三方中转 …
+  # ---------- 3. OpenAI-compatible protocol channels (one protocol, can configure multiple) ----------
+  # Each sub-item is an independent channel: SiliconFlow / OpenAI official / third-party forwarder …
   openai_compatible:
 
     siliconflow:
       enabled: false
       base_url: https://api.siliconflow.cn/v1
-      api_key: ""                        # 环境变量 SILICONFLOW_API_KEY
+      api_key: ""                        # Environment variable SILICONFLOW_API_KEY
       default_model: black-forest-labs/FLUX.2-flex
       models:
         - black-forest-labs/FLUX.2-flex
@@ -64,12 +64,12 @@ providers:
     openai:
       enabled: false
       base_url: https://api.openai.com/v1
-      api_key: ""                        # 环境变量 OPENAI_API_KEY
+      api_key: ""                        # Environment variable OPENAI_API_KEY
       default_model: gpt-image-1
       models:
         - gpt-image-1
 
-    # 第三方低价中转示例（自行替换地址/key，注意甄别稳定性）
+    # Third-party low-cost forwarder example (replace address/key as needed, discern stability)
     relay:
       enabled: false
       base_url: "https://your-relay-host/v1"
@@ -78,8 +78,8 @@ providers:
       models:
         - gpt-image-1
 
-  # ---------- 4. 阿里云百炼 DashScope（通义万相 / Z-Image） ----------
-  # 控制台 https://bailian.console.aliyun.com/  获取 key
+  # ---------- 4. Alibaba Cloud Bailian DashScope (Tongyi Wanxiang / Z-Image) ----------
+  # Console https://bailian.console.aliyun.com/ to get key
   bailian:
     enabled: false
     api_key: ""
@@ -90,27 +90,27 @@ providers:
       - wanx2.1-t2i-plus
       - z-image-turbo
 
-  # ---------- 5. HuggingFace Spaces（免费，云端跑开源模型） ----------
-  # 已内置常用 Space 预设；国内访问 huggingface 需网络可达
+  # ---------- 5. HuggingFace Spaces (free, run open-source models in the cloud) ----------
+  # Preloaded common Space presets; domestic access to huggingface requires network connectivity
   hf_space:
     enabled: true
     default_space: flux_schnell
-    # ZeroGPU 类 Space 匿名有每日免费秒数配额；填入免费 HF token 可获更多配额
-    # 申请: https://huggingface.co/settings/tokens （也可用环境变量 HF_TOKEN）
+    # ZeroGPU-type Spaces have daily free second quota for anonymous; fill in free HF token to get more quota
+    # Application: https://huggingface.co/settings/tokens (also can use environment variable HF_TOKEN)
     hf_token: ""
-    # 也可自定义任意 gradio Space（需要知道它的 api_name 与参数顺序）:
+    # Also customize any Gradio Space (need to know its api_name and parameter order):
     custom_spaces: []
     # - name: my_space
     #   space: user-name/space-name
     #   api_name: /predict
     #   param_order: [prompt, seed, width, height]
 
-  # ---------- 6. Perchance（免费逆向，尽力而为，可能随官网变化） ----------
+  # ---------- 6. Perchance (free reverse, best effort, may change with official site) ----------
   perchance:
     enabled: true
 
-  # ---------- 7. Bing Image Creator（DALL-E 3，需账号 cookie） ----------
-  # 浏览器登录 https://www.bing.com 后，从 cookie 中复制 _U 的值
+  # ---------- 7. Bing Image Creator (DALL-E 3, requires account cookie) ----------
+  # After logging in to https://www.bing.com in the browser, copy the value of _U from the cookie
   bing:
     enabled: false
     cookie_u: ""

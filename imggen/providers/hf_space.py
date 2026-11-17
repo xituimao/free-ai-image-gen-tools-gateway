@@ -1,14 +1,14 @@
-"""HuggingFace Spaces 适配器（Gradio 协议，云端免费、无需本地部署）。
+"""HuggingFace Spaces adapter (Gradio protocol, cloud-free, no local deployment needed).
 
-支持两代 Gradio 协议，自动选择：
-* Gradio 5（队列协议，当前主流）：
-    GET  /config                                 -> 找 api_name 对应 fn_index
-    POST /gradio_api/queue/join                  -> 入队
-    GET  /gradio_api/queue/data?session_hash=..  -> SSE，等 process_completed
-* 旧版（call 协议）：
-    POST /call/<api> -> event_id；GET /call/<api>/<event_id>/events (SSE)
+Supports two Gradio protocol generations, auto-selects:
+* Gradio 5 (queue protocol, current mainstream):
+    GET  /config                                 -> find api_name's fn_index
+    POST /gradio_api/queue/join                  -> enqueue
+    GET  /gradio_api/queue/data?session_hash=..  -> SSE, wait for process_completed
+* Legacy (call protocol):
+    POST /call/<api> -> event_id; GET /call/<api>/<event_id>/events (SSE)
 
-结果中的图像项为 FileData（含 url / path），下载后返回二进制。
+Image items in results are FileData (containing url/path), downloaded and returned as binary.
 """
 import json
 import os
@@ -17,7 +17,7 @@ import string
 
 from .base import BaseProvider, ProviderError
 
-# 内置 Space 预设：param_order 为该接口入参顺序
+# Built-in Space presets: param_order is the interface parameter order
 BUILTIN_SPACES = {
     "flux_schnell": {
         "space": "black-forest-labs/FLUX.1-schnell",
@@ -55,7 +55,7 @@ class HFSpaceProvider(BaseProvider):
         self._fn_cache = {}   # space -> {api_name: fn_index, prefix}
 
     def _headers(self):
-        # ZeroGPU Space 挂 HF token 可获得更多免费每日配额
+        # ZeroGPU Space with HF token gets more free daily quota
         token = self.conf.get("hf_token") or os.environ.get("HF_TOKEN")
         return {"Authorization": "Bearer " + token} if token else {}
 
@@ -68,13 +68,13 @@ class HFSpaceProvider(BaseProvider):
     def _space_name(self, req):
         return req.model or self.conf.get("default_space") or "flux_schnell"
 
-    # ---------- 探测 space 结构 ----------
+    # ---------- Probe space structure ----------
 
     async def _probe(self, client, host, sp):
         sp_id = sp["space"]
         if sp_id in self._fn_cache:
             return self._fn_cache[sp_id]
-        # config 在 /config（Gradio5）
+        # config at /config (Gradio5)
         r = await client.get(host + "/config", headers=self._headers())
         info = {"fn_index": None, "prefix": "/gradio_api", "api_name": sp["api_name"]}
         if r.status_code == 200:
@@ -86,19 +86,19 @@ class HFSpaceProvider(BaseProvider):
                     info["fn_index"] = i
                     break
         else:
-            # 旧版无 /config，退回 call 协议
+            # legacy version has no /config, fall back to call protocol
             info["prefix"] = ""
             info["fn_index"] = None
         self._fn_cache[sp_id] = info
         return info
 
-    # ---------- 主流程 ----------
+    # ---------- Main flow ----------
 
     async def _generate_once(self, client, req):
         sp_name = self._space_name(req)
         sp = self._spaces.get(sp_name)
         if not sp:
-            raise ProviderError("未知 hf_space 预设: %s（可选 %s）" % (
+            raise ProviderError("unknown hf_space preset: %s (options: %s)" % (
                 sp_name, list(self._spaces.keys())))
         host = "https://%s.hf.space" % sp["space"]
         seed = req.seed if req.seed is not None else random.randint(0, 2 ** 31 - 1)
@@ -113,7 +113,7 @@ class HFSpaceProvider(BaseProvider):
         values.update(sp.get("defaults") or {})
         data = [values[k] for k in sp["param_order"]]
 
-        # ZeroGPU 配额/代理瞬时错误时内部重试
+        # internal retry on ZeroGPU quota/proxy transient errors
         last_err = None
         for attempt in range(2):
             try:
@@ -128,14 +128,14 @@ class HFSpaceProvider(BaseProvider):
             except ProviderError as e:
                 last_err = e
                 msg = str(e)
-                # 配额类错误重试无意义，直接抛
+                # quota errors are not worth retrying; raise directly
                 if "quota" in msg.lower():
                     raise
-                # 重试前清除结构缓存，Space 更新后可重新探测
+                # clear structure cache before retrying; Space update allows re-probing
                 self._fn_cache.pop(sp["space"], None)
         raise last_err
 
-    # ---------- Gradio 5 队列 ----------
+    # ---------- Gradio 5 queue ----------
 
     async def _queue_protocol(self, client, host, probe, data):
         sh = _rand_hash()
@@ -147,7 +147,7 @@ class HFSpaceProvider(BaseProvider):
         jr = await client.post(host + probe["prefix"] + "/queue/join",
                                json=body, headers=self._headers())
         if jr.status_code != 200:
-            raise ProviderError("queue/join 失败 HTTP %s %s" % (
+            raise ProviderError("queue/join failed HTTP %s %s" % (
                 jr.status_code, jr.text[:200]), status=jr.status_code)
 
         async with client.stream(
@@ -159,16 +159,16 @@ class HFSpaceProvider(BaseProvider):
                 try:
                     msg = json.loads(payload)
                 except ValueError:
-                    continue   # G8: 非 JSON 行容错
+                    continue   # G8: tolerate non-JSON lines
                 if msg.get("msg") == "process_completed":
                     if not msg.get("success"):
-                        raise ProviderError("Space 处理失败: %s" % json.dumps(
+                        raise ProviderError("Space processing failed: %s" % json.dumps(
                             msg.get("output", {}), ensure_ascii=False)[:200])
                     return msg["output"].get("data", [])
-        raise ProviderError("队列未返回 process_completed（Space 可能休眠）")
+        raise ProviderError("queue did not return process_completed (Space may be sleeping)")
 
     async def _iter_sse(self, resp):
-        """通用 SSE 解析：data 可多行累积、空行分事件、注释心跳跳过。"""
+        """Generic SSE parser: data may accumulate over multiple lines, blank lines separate events, comment heartbeats skipped."""
         data_lines, event = [], None
         async for line in resp.aiter_lines():
             if line == "":
@@ -185,7 +185,7 @@ class HFSpaceProvider(BaseProvider):
         if data_lines:
             yield event, "\n".join(data_lines)
 
-    # ---------- 旧版 call ----------
+    # ---------- Legacy call ----------
 
     async def _call_protocol(self, client, host, probe, sp, data):
         prefixes = ["/gradio_api", ""]
@@ -200,7 +200,7 @@ class HFSpaceProvider(BaseProvider):
                 r, used = rr, pref
                 break
         if r is None or r.status_code != 200:
-            raise ProviderError("call 失败 HTTP %s" % (r.status_code if r else "?"))
+            raise ProviderError("call failed HTTP %s" % (r.status_code if r else "?"))
         event_id = r.json().get("event_id")
         async with client.stream(
                 "GET", "%s%s/call%s/%s/events" % (host, used, sp["api_name"], event_id)
@@ -211,9 +211,9 @@ class HFSpaceProvider(BaseProvider):
                         return json.loads(payload)
                     except ValueError:
                         continue
-        raise ProviderError("call 未等到 complete")
+        raise ProviderError("call did not receive complete")
 
-    # ---------- 下载结果图像 ----------
+    # ---------- Download result images ----------
 
     async def _download_images(self, client, host, item):
         candidates = item if isinstance(item, list) else [item]
@@ -234,5 +234,5 @@ class HFSpaceProvider(BaseProvider):
             if ir.status_code == 200:
                 out.append(ir.content)
         if not out:
-            raise ProviderError("结果中未找到图像: %s" % str(item)[:200])
+            raise ProviderError("no image found in result: %s" % str(item)[:200])
         return out

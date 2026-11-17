@@ -1,8 +1,8 @@
-"""FastAPI 统一生图网关。
+"""FastAPI Unified Image Generation Gateway.
 
-对 AI agent 暴露 OpenAI 兼容接口；对人提供网页控制台。
-所有图片（生成/上传）统一保存在 storage_dir，按会话(sessions)分子目录。
-启动: python -m imggen.server  或  ./run.sh
+Expose OpenAI-compatible API for AI agents; provide web console for humans.
+All images (generated/uploaded) are uniformly stored in storage_dir, organized by session subdirectories.
+Startup: python -m imggen.server  or  ./run.sh
 """
 import asyncio
 import base64
@@ -27,23 +27,23 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 _mcp_app = None
 
-MAX_N = 8            # API 层单次出图上限
-MAX_COMPARE = 5      # compare 并发目标上限
-MAX_UPLOAD_MB = 10   # 单张上传大小上限
+MAX_N = 8            # API level: max images per request
+MAX_COMPARE = 5      # compare: max concurrent targets
+MAX_UPLOAD_MB = 10   # max upload size in MB
 
 _state = {"client": None, "registry": None, "storage": None}
 
 
 class GenBody(BaseModel):
     prompt: str
-    # model: "provider/sub"；"auto" 走自动链；也支持 ["a","b"] 自定义顺序
+    # model: "provider/sub"；"auto" use auto chain；also support ["a","b"] for custom order
     model: str | list[str] | None = "auto"
     n: int | None = 1
     size: str | None = "1024x1024"
     response_format: str | None = "b64_json"   # b64_json | url
     negative_prompt: str | None = ""
     seed: int | None = None
-    session_id: str | None = None              # 归档到哪个会话；也可用 X-Session-Id 头
+    session_id: str | None = None              # session to archive to；also available via X-Session-Id header
     extra: dict | None = None
 
 
@@ -57,11 +57,11 @@ async def lifespan(app):
         storage_dir = os.path.join(ROOT, storage_dir)
     _state["storage"] = Storage(storage_dir)
     _state["usage"] = UsageLogger(os.path.join(storage_dir, "usage.jsonl"))
-    # 分离连接/读取超时，长轮询通道只受 read 约束
+    # Separate connection/read timeouts; long-polling channels only constrained by read
     timeout = httpx.Timeout(connect=15, read=read_to, write=30, pool=15)
     _state["client"] = httpx.AsyncClient(timeout=timeout)
     _state["registry"] = build_registry(cfg)
-    # MCP session manager 需要其自身 lifespan 初始化 task group
+    # MCP session manager needs its own lifespan init task group
     mcp_ctx = None
     if _mcp_app is not None:
         try:
@@ -73,7 +73,7 @@ async def lifespan(app):
     try:
         yield
     finally:
-        # shutdown 顺序：先关闭 MCP session manager，再关闭 HTTP client
+        # shutdown order: close MCP session manager first, then HTTP client
         if mcp_ctx is not None:
             try:
                 await mcp_ctx.__aexit__(None, None, None)
@@ -89,9 +89,9 @@ app = FastAPI(title="Free AI Image Gen Tools Gateway", version="1.4.4", lifespan
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-# MCP（Model Context Protocol）接入面：Streamable HTTP，客户端连 http://host:port/mcp
-# FastMCP 的 streamable_http_app 路由固定为 /mcp，直接合并到主 app 路由表；
-# 其 lifespan（初始化 session manager task group）在主 lifespan 中嵌套执行。
+# MCP (Model Context Protocol) access point: Streamable HTTP, client connects to http://host:port/mcp
+# FastMCP's streamable_http_app route is fixed at /mcp, directly merged into main app route table;
+# its lifespan (initializing session manager task group) is nested in main lifespan.
 try:
     from .mcp_server import get_asgi as _mcp_asgi
     _mcp_app = _mcp_asgi()
@@ -123,10 +123,10 @@ def _sid_of(body, request):
 
 
 def _client_info(request: Request):
-    """识别接入方：transport 来自 X-Transport（web/mcp 会带），默认 api；
-    client 来自 X-Client-Name，无则用 User-Agent 前 40 字符。
-    trusted：web/mcp/cli 通道的 client 名由服务端注入，可信；
-             api 通道外部自报 X-Client-Name，不可信（可伪造）。"""
+    """Identify access side: transport comes from X-Transport (web/mpc carries), default api;
+    client comes from X-Client-Name, default first 40 chars of User-Agent.
+    trusted: web/mcp/cli channel client names injected by server are trustworthy;
+             api channel external self-reports X-Client-Name, untrustworthy (can be forged)."""
     transport = (request.headers.get("X-Transport") or "api").lower()
     client = request.headers.get("X-Client-Name")
     if not client:
@@ -137,7 +137,7 @@ def _client_info(request: Request):
 
 
 def _public_base(request: Request):
-    """拼绝对地址：config 优先；其次识别反向代理 X-Forwarded-*（云端）；否则用请求 Host。"""
+    """Build absolute address: config takes priority; then X-Forwarded-* reverse proxy detection (cloud); otherwise use request Host."""
     cfg_base = (get_config().get("server") or {}).get("public_base_url")
     if cfg_base:
         return cfg_base.rstrip("/")
@@ -161,7 +161,7 @@ def _error(message, etype="server_error", code=None):
 
 
 def _decorate(rec, public_base):
-    """给历史记录补可访问 URL，便于前端直接渲染。"""
+    """Add accessible URL to history records, convenient for frontend to render directly."""
     out = dict(rec)
     sid = out.pop("_sid", "")
     out["file_urls"] = [_image_url(public_base, sid, f)
@@ -202,7 +202,7 @@ async def generate(request: Request, body: GenBody):
             images = await registry.dispatch(client, target, req)
             registry.mark_success(target)
             prov, model = _split_target(target)
-            # 统一归档到当前会话（无论 b64 还是 url）
+            # Archive uniformly to current session (regardless of b64 or url)
             try:
                 rec = storage.archive_generation(sid, images, {
                     "prompt": body.prompt, "negative": body.negative_prompt or "",
@@ -237,7 +237,7 @@ async def generate(request: Request, body: GenBody):
     if not chain:
         _record("fail", error="no available channel")
         return JSONResponse(status_code=400, content={"error": _error(
-            "没有任何已启用且可用的通道（请在 config.yaml 启用/填写凭证）",
+            "No available enabled channel (please enable/fill credentials in config.yaml)",
             "invalid_request_error")})
     statuses = [e["status"] for e in errors]
     if statuses and all(400 <= s < 500 for s in statuses):
@@ -248,7 +248,7 @@ async def generate(request: Request, body: GenBody):
     _record("fail", error="all channels failed: " + "; ".join(
         e["target"] + "=" + str(e["error"])[:80] for e in errors[:3]))
     return JSONResponse(status_code=out_status, content={
-        "error": _error("所有通道均失败", etype),
+        "error": _error("All channels failed", etype),
         "chain_order": chain, "details": details})
 
 
@@ -258,7 +258,7 @@ def _split_target(t):
 
 @app.post("/v1/images/compare")
 async def compare(request: Request, body: GenBody):
-    """同一 prompt 并发给多个渠道（model 为列表），结果也归档到当前会话。"""
+    """Send same prompt concurrently to multiple channels (model is list), results also archived to current session."""
     registry = _state["registry"]
     client = _state["client"]
     storage = _state["storage"]
@@ -294,7 +294,7 @@ async def compare(request: Request, body: GenBody):
             asyncio.gather(*[one(t) for t in targets]), timeout=90)
     except asyncio.TimeoutError:
         return JSONResponse(status_code=504, content={"error": _error(
-            "compare 总超时（90s）", "server_error")})
+            "compare total timeout (90s)", "server_error")})
     except StorageError as e:
         return JSONResponse(status_code=400, content={"error": _error(
             str(e), "invalid_request_error")})
@@ -310,7 +310,7 @@ async def compare(request: Request, body: GenBody):
     return {"session_id": sid, "results": results}
 
 
-# ---------------- 会话管理 ----------------
+# ---------------- Session management ----------------
 
 @app.get("/v1/sessions")
 async def list_sessions(request: Request):
@@ -375,7 +375,7 @@ async def upload_image(request: Request, sid: str,
     data = await file.read()
     if len(data) > MAX_UPLOAD_MB * 1024 * 1024:
         return JSONResponse(status_code=413, content={"error": _error(
-            "图片超过 %dMB" % MAX_UPLOAD_MB, "invalid_request_error")})
+            "Image exceeds %dMB" % MAX_UPLOAD_MB, "invalid_request_error")})
     ext = sniff_ext(data)
     try:
         rec = _state["storage"].archive_upload(sid, data, ext, caption)
@@ -406,7 +406,7 @@ async def session_image(sid: str, name: str):
     return FileResponse(path)
 
 
-# ---------------- 模型/链/管理 ----------------
+# ---------------- Model/chain/management ----------------
 
 @app.get("/v1/models")
 async def models():
@@ -424,7 +424,7 @@ async def auto_chain():
 
 @app.get("/v1/providers")
 async def providers():
-    """渠道管理：所有第三方渠道状态汇总。"""
+    """Channel management: summary of all third-party channel statuses."""
     reg = _state["registry"]
     return {"summary": reg.provider_summary(), "data": reg.provider_status()}
 
@@ -507,7 +507,7 @@ async def provider_test(request: Request, name: str):
     row = next((r for r in reg.provider_status() if r["name"] == name), None)
     if not row:
         return JSONResponse(status_code=404, content={"error": _error(
-            "未知渠道", "invalid_request_error")})
+            "Unknown channel", "invalid_request_error")})
     missing = [c["label"] for c in row["creds"]
                if not c["set"] and not c["optional"]]
     try:
@@ -523,8 +523,8 @@ async def provider_test(request: Request, name: str):
 
 @app.get("/v1/clients")
 async def clients(request: Request):
-    """所有接入方汇总：调用次数、成功率、最后活跃、在线状态。
-    管理接口，受 admin 鉴权保护（配 admin_token 或仅本机）。"""
+    """Summary of all access sides: call count, success rate, last activity, online status.
+    Admin interface, protected by admin authentication (configure admin_token or localhost only)."""
     bad = _check_admin(request)
     if bad:
         return JSONResponse(status_code=403, content={"error": _error(
@@ -536,8 +536,8 @@ async def clients(request: Request):
 async def usage(request: Request, client: str = "", transport: str = "",
                 action: str = "", search: str = "", sort: str = "ts_desc",
                 limit: int = 200, offset: int = 0):
-    """以接入方为单位的使用日志，支持按 client/transport/action 筛选、搜索、排序。
-    管理接口，受 admin 鉴权保护（配 admin_token 或仅本机）。"""
+    """Usage log per access side, supports filtering/searching/sorting by client/transport/action.
+    Admin interface, protected by admin authentication (configure admin_token or localhost only)."""
     bad = _check_admin(request)
     if bad:
         return JSONResponse(status_code=403, content={"error": _error(
@@ -551,9 +551,9 @@ async def usage(request: Request, client: str = "", transport: str = "",
 
 @app.get("/v1/heartbeat")
 async def heartbeat(request: Request):
-    """轻量心跳：前端「接入方与日志」页定时调用，使 web-console 保持在线状态。
-    记一条 usage 日志（action=heartbeat），不返回业务数据。
-    受 admin 鉴权保护（配 admin_token 或仅本机）。"""
+    """Lightweight heartbeat: frontend "access sides and logs" page calls regularly to keep web-console online.
+    Record one usage log (action=heartbeat), no business data returned.
+    Protected by admin authentication (configure admin_token or localhost only)."""
     bad = _check_admin(request)
     if bad:
         return JSONResponse(status_code=403, content={"error": _error(
@@ -577,11 +577,11 @@ def _check_admin(request: Request):
     token = srv.get("admin_token") or os.environ.get("ADMIN_TOKEN")
     if token:
         if request.headers.get("X-Admin-Token", "") != token:
-            return "admin token 无效"
+            return "admin token invalid"
         return None
     client_host = request.client.host if request.client else ""
     if client_host not in ("127.0.0.1", "::1"):
-        return "未配置 admin_token，仅允许本机调用管理接口"
+        return "admin_token not configured, management interface only allowed on localhost"
     return None
 
 
@@ -609,7 +609,7 @@ async def reload_cfg(request: Request):
 @app.exception_handler(RequestValidationError)
 async def _validation_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(status_code=400, content={"error": _error(
-        "请求参数校验失败: %s" % exc.errors(), "invalid_request_error")})
+        "Request parameter validation failed: %s" % exc.errors(), "invalid_request_error")})
 
 
 @app.get("/")
@@ -625,7 +625,7 @@ def main():
         "imggen.server:app",
         host=srv.get("host", "127.0.0.1"),
         port=srv.get("port", 8799),
-        # 云端反向代理后需信任代理头，才能正确识别协议/客户端
+        # Cloud reverse proxy needs to trust proxy headers to correctly identify protocol/client
         forwarded_allow_ips=srv.get("forwarded_allow_ips", "127.0.0.1"),
         reload=False)
 

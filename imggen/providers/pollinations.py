@@ -1,7 +1,7 @@
-"""Pollinations —— 完全免费、无需 key、无需注册的 HTTP 生图通道。
+"""Pollinations — completely free HTTP image-generation channel, no key and no registration required.
 
-调用方式: GET https://image.pollinations.ai/prompt/<prompt>?width=&height=&seed=
-直接返回图片二进制。匿名免费档当前模型为 sana。
+Usage: GET https://image.pollinations.ai/prompt/<prompt>?width=&height=&seed=
+Returns raw image binary directly. Anonymous free tier's current model is sana.
 """
 import random
 from urllib.parse import quote
@@ -35,5 +35,5 @@ class PollinationsProvider(BaseProvider):
         r = await client.get(url, params=params)
         ctype = r.headers.get("content-type", "")
         if r.status_code != 200 or "image" not in ctype:
-            raise ProviderError("pollinations 出图失败: HTTP %s %s" % (r.status_code, r.text[:200]))
+            raise ProviderError("pollinations image generation failed: HTTP %s %s" % (r.status_code, r.text[:200]))
         return [r.content]

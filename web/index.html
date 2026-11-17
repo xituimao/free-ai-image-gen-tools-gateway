@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>统一生图网关 · 控制台</title>
+<title>Unified Image Gateway · Console</title>
 <style>
   :root{
     --nav:#0f1f33; --nav2:#16293f; --primary:#2563eb; --ink:#1f2937;
@@ -16,7 +16,7 @@
     background:var(--bg);color:var(--ink);font-size:14px}
   a{color:var(--primary);text-decoration:none}
 
-  /* ---------- 顶栏 ---------- */
+  /* ---------- Topbar ---------- */
   .topbar{height:56px;background:var(--nav);color:#fff;display:flex;align-items:center;
     padding:0 20px;gap:18px;position:sticky;top:0;z-index:20}
   .topbar .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;min-width:208px}
@@ -33,7 +33,7 @@
   .topbar button{background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:7px;
     padding:6px 11px;font-size:12.5px;cursor:pointer}
 
-  /* ---------- 布局 ---------- */
+  /* ---------- Layout ---------- */
   .shell{display:grid;grid-template-columns:208px 1fr;min-height:calc(100vh - 56px)}
   .sidenav{background:var(--nav2);padding:14px 12px}
   .navitem{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:8px;color:#b8c4d4;
@@ -50,7 +50,7 @@
   .card .ch h3{font-size:15px;font-weight:650}
   .card .cb{padding:18px}
 
-  /* ---------- 表单 ---------- */
+  /* ---------- Form ---------- */
   .fld{margin-bottom:14px}.fld>span{display:block;font-weight:600;font-size:12.5px;margin-bottom:6px;color:#374151}
   input,select,textarea{width:100%;padding:9px 11px;border:1px solid #cfd8e3;border-radius:8px;
     font-size:13.5px;font-family:inherit;background:#fff;color:var(--ink)}
@@ -155,95 +155,95 @@
 <body>
 
 <div class="topbar">
-  <div class="brand"><span class="logo">◆</span>统一生图网关</div>
+  <div class="brand"><span class="logo">◆</span>Unified Image Gateway</div>
   <span class="pill"><span class="dot g" id="globalDot"></span><span id="globalTxt">—</span></span>
   <div class="grow"></div>
-  <span class="pill">当前会话</span>
+  <span class="pill">Current Session</span>
   <select id="sessSel"></select>
-  <button id="sessNew">+ 新建会话</button>
+  <button id="sessNew">+ New Session</button>
   <input id="adminTokenInput" type="password" placeholder="admin token" autocomplete="off"
     style="width:130px;margin-left:8px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:7px;padding:5px 8px;font-size:12px"
-    title="网关配置 admin_token 后在此填入，前端所有请求自动携带 X-Admin-Token（存本地浏览器）">
+    title="Fill in admin_token after gateway configuration; frontend requests automatically carry X-Admin-Token (stored locally in browser)">
 </div>
 
 <div class="shell">
   <nav class="sidenav">
-    <div class="navsec">工作区</div>
-    <div class="navitem on" data-view="workbench"><span class="ic">🎨</span>出图工作台</div>
-    <div class="navitem" data-view="history"><span class="ic">🗂️</span>历史记录</div>
-    <div class="navsec">系统</div>
-    <div class="navitem" data-view="providers"><span class="ic">🔌</span>渠道管理</div>
-    <div class="navitem" data-view="clients"><span class="ic">📊</span>接入方与日志</div>
-    <div class="navitem" data-view="api"><span class="ic">📡</span>接入文档</div>
+    <div class="navsec">Workspace</div>
+        <div class="navitem on" data-view="workbench"><span class="ic">🎨</span>Image Generation Workbench</div>
+        <div class="navitem" data-view="history"><span class="ic">🗂️</span>History</div>
+        <div class="navsec">System</div>
+        <div class="navitem" data-view="providers"><span class="ic">🔌</span>Channel Management</div>
+        <div class="navitem" data-view="clients"><span class="ic">📊</span>Client & Logs</div>
+        <div class="navitem" data-view="api"><span class="ic">📡</span>Access Docs</div>
   </nav>
 
   <div class="main">
 
-    <!-- ============ 工作台 ============ -->
+    <!-- ============ Workbench ============ -->
     <div class="view on" id="view-workbench">
       <div class="wb">
         <div class="card">
-          <div class="ch"><h3>生成参数</h3></div>
+          <div class="ch"><h3>Generation Parameters</h3></div>
           <div class="cb">
             <div class="subtabs">
-              <button data-w="single" class="on">单渠道</button>
-              <button data-w="auto">自动链</button>
-              <button data-w="compare">多渠道对比</button>
+              <button data-w="single" class="on">Single Channel</button>
+              <button data-w="auto">Auto Chain</button>
+              <button data-w="compare">Multi-Channel Compare</button>
             </div>
 
             <div id="w-single">
-              <div class="fld"><span>选择第三方渠道 / 模型</span><select id="singleSel"></select></div>
+              <div class="fld"><span>Select third-party channel / model</span><select id="singleSel"></select></div>
             </div>
             <div id="w-auto" style="display:none">
               <div id="chainBox" style="font-size:12.5px;line-height:1.9;color:#475569"></div>
             </div>
             <div id="w-compare" style="display:none">
-              <span style="font-size:12.5px;font-weight:650;display:block;margin-bottom:7px">勾选要并排对比的渠道（最多5）</span>
+              <span style="font-size:12.5px;font-weight:650;display:block;margin-bottom:7px">Check channels to compare side by side (max 5)</span>
               <div class="checklist" id="cmpList"></div>
             </div>
 
-            <div class="fld" style="margin-top:14px"><span>提示词 Prompt</span>
-              <textarea id="prompt" placeholder="详细描述你想要的画面主体、风格、光线、构图"></textarea></div>
-            <div class="fld"><span>负向提示词（可选）</span><input id="negative" placeholder="不希望出现的元素"></div>
+            <div class="fld" style="margin-top:14px">            <span>Prompt</span>
+                          <textarea id="prompt" placeholder="Describe the subject, style, lighting, composition of the image you want"></textarea></div>
+                        <div class="fld"><span>Negative Prompt (optional)</span><input id="negative" placeholder="Elements you don't want"></div>
             <div class="g2">
-              <div class="fld"><span>尺寸 WxH</span><input id="size" value="1024x1024"></div>
-              <div class="fld"><span>数量 n（≤8）</span><input id="n" type="number" value="1" min="1" max="8"></div>
+                          <div class="fld"><span>Size WxH</span><input id="size" value="1024x1024"></div>
+                          <div class="fld"><span>Count n (≤8)</span><input id="n" type="number" value="1" min="1" max="8"></div>
             </div>
-            <div class="fld"><span>随机种子（可选）</span><input id="seed" type="number" placeholder="留空随机"></div>
-            <button class="btn primary block" id="goBtn">开始生成</button>
+                        <div class="fld"><span>Random Seed (optional)</span><input id="seed" type="number" placeholder="Leave empty for random"></div>
+                        <button class="btn primary block" id="goBtn">Start Generation</button>
           </div>
         </div>
 
         <div>
           <div id="wbMsg"></div>
           <div class="card">
-            <div class="ch"><h3>生成结果</h3><span style="font-size:12.5px;color:var(--muted)" id="resInfo"></span></div>
+            <div class="ch"><h3>Generation Results</h3><span style="font-size:12.5px;color:var(--muted)" id="resInfo"></span></div>
             <div class="cb">
               <div class="resultgrid" id="grid"></div>
-              <div class="empty" id="resEmpty">结果会显示在这里；点击图片可放大</div>
+              <div class="empty" id="resEmpty">Results will appear here; click image to enlarge</div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ============ 历史 ============ -->
+    <!-- ============ History ============ -->
     <div class="view" id="view-history">
       <div class="card">
-        <div class="ch"><h3>历史记录</h3><span style="font-size:12.5px;color:var(--muted)" id="hCount"></span></div>
+        <div class="ch"><h3>History</h3><span style="font-size:12.5px;color:var(--muted)" id="hCount"></span></div>
         <div class="cb">
           <div class="toolbar">
-            <input id="hSearch" placeholder="按提示词 / 渠道名搜索">
+            <input id="hSearch" placeholder="Search by prompt / channel name">
             <select id="hSort">
-              <option value="ts_desc">时间 · 最新优先</option>
-              <option value="ts_asc">时间 · 最早优先</option>
-              <option value="provider_asc">渠道名 A→Z</option>
-              <option value="provider_desc">渠道名 Z→A</option>
-              <option value="size_desc">尺寸 大→小</option>
-              <option value="n_desc">数量 多→少</option>
+              <option value="ts_desc">Time · Latest first</option>
+              <option value="ts_asc">Time · Earliest first</option>
+              <option value="provider_asc">Channel name A→Z</option>
+              <option value="provider_desc">Channel name Z→A</option>
+              <option value="size_desc">Size Large→Small</option>
+              <option value="n_desc">Count Many→Few</option>
             </select>
-            <button class="btn" id="hRefresh">刷新</button>
-            <button class="btn primary" id="hUpload">上传图片到当前会话</button>
+            <button class="btn" id="hRefresh">Refresh</button>
+                        <button class="btn primary" id="hUpload">Upload Image to Current Session</button>
             <input type="file" id="hFile" accept="image/*" style="display:none">
           </div>
           <div id="histList"></div>
@@ -251,48 +251,48 @@
       </div>
     </div>
 
-    <!-- ============ 渠道管理 ============ -->
+    <!-- ============ Channel Management ============ -->
     <div class="view" id="view-providers">
       <div class="statrow">
-        <div class="stat s1"><div class="n" id="stAv">0</div><div class="t">可用渠道</div></div>
-        <div class="stat s2"><div class="n" id="stUn">0</div><div class="t">未配置 / 未启用</div></div>
-        <div class="stat s3"><div class="n" id="stCo">0</div><div class="t">冷却中</div></div>
-        <div class="stat s4"><div class="n" id="stTo">0</div><div class="t">渠道总数</div></div>
+        <div class="stat s1"><div class="n" id="stAv">0</div>        <div class="t">Available Channels</div></div>
+                <div class="stat s2"><div class="n" id="stUn">0</div><div class="t">Unconfigured / Disabled</div></div>
+                <div class="stat s3"><div class="n" id="stCo">0</div><div class="t">Cooling Down</div></div>
+                <div class="stat s4"><div class="n" id="stTo">0</div><div class="t">Total Channels</div></div>
       </div>
       <div id="provMsg"></div>
       <div class="provgrid" id="provGrid"></div>
     </div>
 
-    <!-- ============ 接入方与日志 ============ -->
+    <!-- ============ Clients & Logs ============ -->
     <div class="view" id="view-clients">
       <div class="card" style="margin-bottom:16px">
-        <div class="ch"><h3>接入方</h3><span style="font-size:12.5px;color:var(--muted)" id="cliCount"></span></div>
+        <div class="ch"><h3>Clients</h3><span style="font-size:12.5px;color:var(--muted)" id="cliCount"></span></div>
         <div class="cb"><div class="statrow" id="cliCards" style="margin-bottom:0"></div></div>
       </div>
       <div class="card">
-        <div class="ch"><h3>使用日志</h3>
+        <div class="ch"><h3>Usage Logs</h3>
           <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-            <select id="logClient" style="width:auto"><option value="">全部接入方</option></select>
+            <select id="logClient" style="width:auto">            <option value="">All Clients</option></select>
             <select id="logTransport" style="width:auto">
-              <option value="">全部通道</option><option value="api">API</option>
+                          <option value="">All Channels</option><option value="api">API</option>
               <option value="mcp">MCP</option><option value="cli">CLI</option><option value="web">Web</option>
             </select>
             <select id="logAction" style="width:auto">
-              <option value="">全部动作</option><option value="generate">生成</option>
-              <option value="compare">对比</option><option value="configure">配置</option>
-              <option value="upload">上传</option><option value="test">自检</option>
-              <option value="heartbeat">心跳</option>
+                          <option value="">All Actions</option><option value="generate">Generate</option>
+                          <option value="compare">Compare</option><option value="configure">Configure</option>
+                          <option value="upload">Upload</option><option value="test">Self-test</option>
+                          <option value="heartbeat">Heartbeat</option>
             </select>
             <select id="logLimit" style="width:auto">
-              <option value="50">50条</option><option value="100">100条</option>
-              <option value="300" selected>300条</option><option value="1000">1000条</option>
+              <option value="50">50 entries</option><option value="100">100 entries</option>
+              <option value="300" selected>300 entries</option><option value="1000">1000 entries</option>
             </select>
-            <input id="logSearch" placeholder="搜索 prompt/渠道" style="width:180px">
-            <button class="btn" id="logRefresh">刷新</button>
+            <input id="logSearch" placeholder="Search prompt / channel" style="width:180px">
+                        <button class="btn" id="logRefresh">Refresh</button>
             <label style="font-size:12.5px;color:var(--muted);margin-left:8px;cursor:pointer">
-              <input type="checkbox" id="logAutoRefresh"> 自动刷新
+                          <input type="checkbox" id="logAutoRefresh"> Auto Refresh
             </label>
-            <button class="btn" id="logClear" style="margin-left:8px">清空显示</button>
+                        <button class="btn" id="logClear" style="margin-left:8px">Clear Display</button>
           </div>
         </div>
         <div class="cb" style="padding-top:0">
@@ -301,9 +301,9 @@
       </div>
     </div>
 
-    <!-- ============ 接入文档 ============ -->
+    <!-- ============ Access Docs ============ -->
     <div class="view" id="view-api">
-      <div class="card"><div class="ch"><h3>给其他 AI Agent / 程序的接入方式</h3></div>
+      <div class="card"><div class="ch"><h3>Access method for other AI Agents / programs</h3></div>
         <div class="cb"><pre id="apiPre" style="font-size:12.5px;line-height:1.7;white-space:pre-wrap"></pre></div></div>
     </div>
 
@@ -331,24 +331,24 @@ function startHeartbeat(){
 }
 function stopHeartbeat(){if(hbTimer){clearInterval(hbTimer);hbTimer=null;}}
 
-/* ---------------- 会话 ---------------- */
+/* ---------------- Sessions ---------------- */
 async function loadSessions(keep){
   const d=await(await apiFetch('/v1/sessions')).json();
   const sel=$('sessSel');sel.innerHTML='';
   d.data.forEach(s=>{const o=document.createElement('option');o.value=s.id;
-    o.textContent=s.title+' · '+s.images+'图';sel.appendChild(o);});
+    o.textContent=s.title+' · '+s.images+' images';sel.appendChild(o);});
   CUR_SID=keep||localStorage.getItem('imgw_sid')||'default';
   if(!d.data.some(s=>s.id===CUR_SID))CUR_SID='default';
   sel.value=CUR_SID;localStorage.setItem('imgw_sid',CUR_SID);
 }
 $('sessSel').onchange=async e=>{CUR_SID=e.target.value;localStorage.setItem('imgw_sid',CUR_SID);
   if($('view-history').classList.contains('on'))loadHistory();};
-$('sessNew').onclick=async()=>{const t=prompt('新会话标题（可留空）','')||'';
+$('sessNew').onclick=async()=>{const t=prompt('New session title (optional)','')||'';
   const s=await(await apiFetch('/v1/sessions',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({title:t})})).json();
   await loadSessions(s.id);if($('view-history').classList.contains('on'))loadHistory();};
 
-/* ---------------- 导航 ---------------- */
+/* ---------------- Navigation ---------------- */
 document.querySelectorAll('.navitem').forEach(n=>n.onclick=()=>{
   document.querySelectorAll('.navitem').forEach(x=>x.classList.remove('on'));n.classList.add('on');
   const v=n.dataset.view;
@@ -360,7 +360,7 @@ document.querySelectorAll('.navitem').forEach(n=>n.onclick=()=>{
   else stopHeartbeat();
 });
 
-/* ---------------- 初始化 ---------------- */
+/* ---------------- Initialization ---------------- */
 async function init(){
   var savedToken = localStorage.getItem('imgw_admin_token');
   if(savedToken) $('adminTokenInput').value = savedToken;
@@ -372,68 +372,68 @@ async function init(){
 }
 function fillSingle(){const s=$('singleSel');s.innerHTML='';
   MODELS.forEach(m=>{const o=document.createElement('option');o.value=m.id;
-    o.textContent=m.id+(m.available?'':'（未配置）');if(!m.available)o.style.color='#9aa5b1';s.appendChild(o);});}
+    o.textContent=m.id+(m.available?'':' (not configured)');if(!m.available)o.style.color='#9aa5b1';s.appendChild(o);});}
 function fillCompare(){const box=$('cmpList');box.innerHTML='';const seen={};
   MODELS.forEach(m=>{const p=m.id.split('/')[0];if(seen[p])return;seen[p]=1;
     const lab=document.createElement('label'),cb=document.createElement('input');cb.type='checkbox';cb.value=m.id;
     const b=document.createElement('span');b.className='badge '+(m.available?(m.kind==='free'?'b-free':'b-cheap'):'b-act');
-    b.textContent=m.available?(m.kind==='free'?'免费':'需key'):'未配置';
+    b.textContent=m.available?(m.kind==='free'?'Free':'Requires key'):'Not configured';
     lab.append(cb,document.createTextNode(p),b);box.appendChild(lab);});}
 async function refreshChain(){
-  try{const j=await(await apiFetch('/v1/chain')).json();let h='<div>自动链顺序（成功即止）：</div><ol style="padding-left:18px">';
-    j.chain.forEach((x,i)=>h+='<li>'+x+(i===0?'（最先）':'')+'</li>');h+='</ol>';
-    if(j.cooling.length){h+='<div style="color:#b45309">冷却中：'+j.cooling.map(c=>c.provider+'('+c.left+'s)').join('、')+'</div>';}
+  try{const j=await(await apiFetch('/v1/chain')).json();  let h='<div>Auto chain order (stop on success):</div><ol style="padding-left:18px">';
+      j.chain.forEach((x,i)=>h+='<li>'+x+(i===0?' (first)':'')+'</li>');h+='</ol>';
+      if(j.cooling.length){h+='<div style="color:#b45309">Cooling down: '+j.cooling.map(c=>c.provider+'('+c.left+'s)').join(', ')+'</div>';}
     $('chainBox').innerHTML=h;
   }catch(e){}
 }
 async function refreshGlobal(){
   try{const j=await(await apiFetch('/v1/providers')).json();const s=j.summary;
-    $('globalTxt').textContent=s.available+'/'+s.total+' 渠道可用';
+    $('globalTxt').textContent=s.available+'/'+s.total+' channels available';
     $('globalDot').className='dot '+(s.available?'g':'a');
   }catch(e){}}
 function fillApi(){const b=location.origin;
   $('apiPre').textContent=
-`# 自动链（推荐）
+`# Auto chain (recommended)
 curl -X POST ${b}/v1/images/generations -H "Content-Type: application/json" \\
-  -d '{"prompt":"一只穿西装的柯基","session_id":"myproj"}'
+  -d '{"prompt":"A corgi in a suit","session_id":"myproj"}'
 
-# 指定第三方渠道 / 自定义顺序 / 请求头指定会话
+# Specify third-party channel / custom order / header specify session
 -d '{"model":"pollinations"}'
 -d '{"model":["pollinations","gemini","siliconflow"]}'
 -H "X-Session-Id: myproj"
 
-# Python（openai SDK 只换 base_url）
+# Python (openai SDK only changes base_url)
 from openai import OpenAI
 c=OpenAI(base_url="${b}",api_key="x")
 c.images.generate(model="auto",prompt="...",extra_body={"session_id":"myproj"})
 
-# CLI（-s 指定会话；图统一归档到 storage/sessions/<会话>/）
+# CLI (-s specifies session; images archived to storage/sessions/<session>/)
 python -m imggen.cli "prompt" -s myproj
 
-# MCP（Claude Desktop / Cursor / Cline 等支持 MCP 的客户端）
-# Streamable HTTP：URL 填 ${b}/mcp
-# stdio：命令填 python -m imggen.mcp_server
-# 工具：generate_image / list_sessions / list_history / get_providers / configure_provider / test_provider`;
+# MCP (Claude Desktop / Cursor / Cline and other MCP-supporting clients)
+# Streamable HTTP: URL fill ${b}/mcp
+# stdio: command fill python -m imggen.mcp_server
+# Tools: generate_image / list_sessions / list_history / get_providers / configure_provider / test_provider`;
 }
 
-/* ---------------- 工作台子tab ---------------- */
+/* ---------------- Workbench sub-tabs ---------------- */
 document.querySelectorAll('.subtabs button').forEach(b=>b.onclick=()=>{
   WT=b.dataset.w;
   document.querySelectorAll('.subtabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
   ['single','auto','compare'].forEach(k=>$('w-'+k).style.display=WT===k?'block':'none');
 });
 
-/* ---------------- 生成 ---------------- */
+/* ---------------- Generation ---------------- */
 $('goBtn').onclick=async()=>{
   if(busy){if(ctrl)ctrl.abort();return;}
-  const prompt=$('prompt').value.trim();if(!prompt){alert('请输入提示词');return;}
+  const prompt=$('prompt').value.trim();if(!prompt){alert('Please enter prompt');return;}
   const c={prompt,negative_prompt:$('negative').value.trim(),
     size:$('size').value.trim()||'1024x1024',n:parseInt($('n').value)||1,
     response_format:'b64_json',session_id:CUR_SID};
   const seed=$('seed').value;if(seed)c.seed=parseInt(seed);
   let url;
   if(WT==='compare'){const t=[...document.querySelectorAll('#cmpList input:checked')].map(x=>x.value);
-    if(!t.length){alert('请至少勾选一个渠道');return;}c.model=t.slice(0,5);url='/v1/images/compare';}
+    if(!t.length){alert('Please check at least one channel');return;}c.model=t.slice(0,5);url='/v1/images/compare';}
   else{c.model=WT==='auto'?'auto':$('singleSel').value;url='/v1/images/generations';}
   setBusy(1);$('grid').innerHTML='';$('wbMsg').innerHTML='';$('resEmpty').style.display='block';
   ctrl=new AbortController();
@@ -442,16 +442,16 @@ $('goBtn').onclick=async()=>{
       body:JSON.stringify(c),signal:ctrl.signal});
     const j=await r.json();
     if(url.endsWith('compare')){(j.results||[]).forEach(renderCmp);}
-    else if(r.ok){$('resInfo').textContent='渠道 '+j.provider+' · 会话 '+j.session_id;
+    else if(r.ok){$('resInfo').textContent='Channel '+j.provider+' · Session '+j.session_id;
       j.data.forEach(d=>{const m=b64mime(d.b64_json);
         addFig('data:'+m+';base64,'+d.b64_json,j.provider,m);});}
     else failMsg(j.error&&j.error.message);
-  }catch(e){if(e.name==='AbortError'){}else failMsg('请求异常: '+e.message);}
+  }catch(e){if(e.name==='AbortError'){}else failMsg('Request exception: '+e.message);}
   finally{setBusy(0);ctrl=null;loadSessions(CUR_SID);};
 };
 function failMsg(m){$('wbMsg').innerHTML='<div class="msg err">'+m+'</div>';$('resInfo').textContent='';}
 function renderCmp(r){
-  if(!r.ok){failMsg(r.target+' 失败: '+r.error);}
+  if(!r.ok){failMsg(r.target+' failed: '+r.error);}
   else{const m='image/'+(r.ext==='jpg'?'jpeg':r.ext);addFig('data:'+m+';base64,'+r.b64,r.target,m);}}
 function addFig(src,name,mime){$('resEmpty').style.display='none';
   const fig=document.createElement('div');fig.className='fig';
@@ -460,24 +460,24 @@ function addFig(src,name,mime){$('resEmpty').style.display='none';
   const sp=document.createElement('span');sp.textContent=name;
   const a=document.createElement('a');a.href=src;
   a.download=name.replace(/[\/\\]/g,'_')+'.'+(MIME_EXT[mime]||'png');
-  a.textContent='下载';
+  a.textContent='Download';
   fm.append(sp,a);fig.append(im,fm);$('grid').appendChild(fig);}
-function setBusy(b){busy=b;const btn=$('goBtn');btn.textContent=b?'取消':'开始生成';
-  btn.classList.toggle('danger',b);if(b)$('resInfo').innerHTML='<span class="spin"></span>处理中…';}
+function setBusy(b){busy=b;const btn=$('goBtn');btn.textContent=b?'Cancel':'Start Generation';
+  btn.classList.toggle('danger',b);if(b)$('resInfo').innerHTML='<span class="spin"></span>Processing…';}
 
 function b64mime(b){try{const x=atob(b.slice(0,16)),a=x.charCodeAt(0),z=x.charCodeAt(1);
   if(a===0xFF&&z===0xD8)return'image/jpeg';if(a===0x89&&z===0x50)return'image/png';
   if(a===0x52&&z===0x49)return'image/webp';}catch(e){}return'image/png';}
 const MIME_EXT={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'};
 
-/* ---------------- 历史 ---------------- */
+/* ---------------- History ---------------- */
 async function loadHistory(){
   const s=$('hSearch').value.trim(),sort=$('hSort').value;
-  $('histList').innerHTML='<span class="spin"></span>加载中…';
+  $('histList').innerHTML='<span class="spin"></span>Loading…';
   const q='/v1/sessions/'+CUR_SID+'/history?search='+encodeURIComponent(s)+'&sort='+sort;
   const j=await(await apiFetch(q)).json();
-  $('hCount').textContent='共 '+j.total+' 条 · 会话 '+CUR_SID;
-  if(!j.total){$('histList').innerHTML='<div class="empty">没有匹配记录</div>';return;}
+  $('hCount').textContent='Total '+j.total+' entries · Session '+CUR_SID;
+  if(!j.total){$('histList').innerHTML='<div class="empty">No matching records</div>';return;}
   $('histList').innerHTML='';
   j.data.forEach(r=>$('histList').appendChild(renderHRec(r)));
 }
@@ -486,14 +486,14 @@ function renderHRec(r){
   const d=document.createElement('div');d.className='hrec';
   const left=document.createElement('div');left.className='hleft';
   const l1=document.createElement('div');l1.className='hline1';
-  // 显著第三方渠道名
+  // Prominent third-party channel name
   const cb=document.createElement('span');
-  if(r.source==='upload'){cb.className='chan-badge b-up';cb.textContent='本地上传';}
+  if(r.source==='upload'){cb.className='chan-badge b-up';cb.textContent='Local Upload';}
   else{cb.className='chan-badge '+typeBadgeClass(providerType(r.provider));cb.textContent=r.provider;}
   const act=document.createElement('span');act.className='badge b-act';
-  act.textContent=r.source==='upload'?'上传':'生成';
+  act.textContent=r.source==='upload'?'Upload':'Generate';
   l1.append(cb,act);
-  const pr=document.createElement('div');pr.className='pr';pr.textContent=r.prompt||'(无提示词)';
+  const pr=document.createElement('div');pr.className='pr';pr.textContent=r.prompt||'(no prompt)';
   const mt=document.createElement('div');mt.className='meta';
   mt.innerHTML='<span>🕐 '+fmtT(r.ts)+'</span>'+(r.width?'<span>📐 '+r.width+'×'+r.height+'</span>':'')+
     '<span>🖼 n='+r.n+'</span>'+(r.seed!=null?'<span>seed='+r.seed+'</span>':'')+'<span>💾 '+Math.round((r.bytes||0)/1024)+'KB</span>';
@@ -502,12 +502,12 @@ function renderHRec(r){
   const th=document.createElement('div');th.className='thumbs';
   r.file_urls.forEach((u,i)=>{const im=document.createElement('img');im.src=u;im.onclick=()=>openLb(r.file_urls[i]);th.appendChild(im);});
   const ops=document.createElement('div');ops.className='ops';
-  const a1=document.createElement('a');a1.textContent='↻ 用此参数重生成';a1.onclick=()=>reuse(r);
-  const a2=document.createElement('a');a2.textContent='下载';a2.href=r.file_urls[0]||'#';
+  const a1=document.createElement('a');a1.textContent='↻ Regenerate with these parameters';a1.onclick=()=>reuse(r);
+  const a2=document.createElement('a');a2.textContent='Download';a2.href=r.file_urls[0]||'#';
   ops.append(a1,a2);right.append(th,ops);
   d.append(left,right);return d;
 }
-/* 渠道名 -> 类型（从 providers 状态查） */
+/* Channel name -> type (from providers status) */
 function providerType(name){const p=PROVIDERS.find(x=>x.name===name);return p?p.type:'free';}
 function reuse(r){
   $('prompt').value=r.prompt||'';$('negative').value=r.negative||'';
@@ -523,14 +523,14 @@ $('hSearch').oninput=deb(loadHistory,350);$('hSort').onchange=loadHistory;
 $('hRefresh').onclick=loadHistory;
 $('hUpload').onclick=()=>$('hFile').click();
 $('hFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;
-  const cap=prompt('备注（可留空）','')||'';const fd=new FormData();
+  const cap=prompt('Note (optional)','')||'';const fd=new FormData();
   fd.append('file',f);fd.append('caption',cap);
   const r=await apiFetch('/v1/sessions/'+CUR_SID+'/upload',{method:'POST',body:fd});
-  if(!r.ok){alert('上传失败');return;}e.target.value='';loadSessions(CUR_SID);loadHistory();};
+  if(!r.ok){alert('Upload failed');return;}e.target.value='';loadSessions(CUR_SID);loadHistory();};
 
-/* ---------------- 渠道管理 ---------------- */
+/* ---------------- Channel Management ---------------- */
 async function loadProviders(){
-  $('provGrid').innerHTML='<span class="spin"></span>加载中…';
+  $('provGrid').innerHTML='<span class="spin"></span>Loading…';
   const j=await(await apiFetch('/v1/providers')).json();PROVIDERS=j.data;
   const s=j.summary;
   $('stAv').textContent=s.available;$('stUn').textContent=s.unconfigured;
@@ -545,39 +545,39 @@ function renderP(p){
   const tb=document.createElement('span');tb.className='badge '+typeBadgeClass(p.type);tb.textContent=p.type_label;
   const st=document.createElement('span');st.className='st';
   const sd=document.createElement('span');sd.className='dot '+(p.available?'g':(p.cooldown_left?'c':'a'));
-  st.append(sd,document.createTextNode(p.available?'可用':(p.cooldown_left?'冷却 '+p.cooldown_left+'s':'未配置')));
+  st.append(sd,document.createTextNode(p.available?'Available':(p.cooldown_left?'Cooling down '+p.cooldown_left+'s':'Not configured')));
   ph.append(nm,tb,st);
   const pb=document.createElement('div');pb.className='pb';
   const ds=document.createElement('div');ds.className='desc';ds.textContent=p.desc+(p.url?' · ':"");
   pb.appendChild(ds);
-  // 凭证
+  // Credentials
   p.creds.forEach(cr=>{const row=document.createElement('div');row.className='crow';
     const lb=document.createElement('label');lb.textContent=cr.label;
     const inp=document.createElement('input');inp.type='password';inp.dataset.f=cr.field;
-    inp.placeholder=(cr.set?'已设置 · 留空不修改':'未设置'+(cr.optional?'（可选）':''));
+    inp.placeholder=(cr.set?'Set · leave empty to not modify':'Not set'+(cr.optional?' (optional)':''));
     row.append(lb,inp);pb.appendChild(row);});
-  // 默认模型
+  // Default model
   const dmrow=document.createElement('div');dmrow.className='crow';
-  const dmlb=document.createElement('label');dmlb.textContent='默认模型';
+  const dmlb=document.createElement('label');dmlb.textContent='Default Model';
   if(p.models.length){const dms=document.createElement('select');dms.dataset.f='__dm';
-    p.models.forEach(m=>{const o=document.createElement('option');o.value=m||'';o.textContent=m||'(默认)';
+    p.models.forEach(m=>{const o=document.createElement('option');o.value=m||'';o.textContent=m||'(default)';
       if(m===p.default_model)o.selected=1;dms.appendChild(o);});dmrow.append(dmlb,dms);}
-  else{const dmi=document.createElement('input');dmi.dataset.f='__dm';dmi.placeholder=p.default_model||'模型名';dmrow.append(dmlb,dmi);}
+  else{const dmi=document.createElement('input');dmi.dataset.f='__dm';dmi.placeholder=p.default_model||'model name';dmrow.append(dmlb,dmi);}
   pb.appendChild(dmrow);
-  // 启用开关
+  // Enable toggle
   const erow=document.createElement('div');erow.className='crow';
-  const elb=document.createElement('label');elb.textContent='启用';
+  const elb=document.createElement('label');elb.textContent='Enable';
   const sw=document.createElement('span');sw.className='switch';
   const ck=document.createElement('input');ck.type='checkbox';ck.checked=!!p.enabled;
   const sl=document.createElement('span');sl.className='sl';sw.append(ck,sl);
   erow.append(elb,sw);pb.appendChild(erow);
-  // 按钮
+  // Buttons
   const foot=document.createElement('div');foot.className='pfoot';
-  const sv=document.createElement('button');sv.className='btn primary';sv.textContent='保存配置';
+  const sv=document.createElement('button');sv.className='btn primary';sv.textContent='Save Configuration';
   sv.onclick=()=>saveP(p.name,c,ck);
-  const ts=document.createElement('button');ts.className='btn selftest';ts.textContent='自检';
+  const ts=document.createElement('button');ts.className='btn selftest';ts.textContent='Self-test';
   ts.onclick=async()=>{const r=await(await apiFetch('/v1/providers/'+p.name+'/test',{method:'POST'})).json();
-    showProv('自检：'+(r.available?'可用 ✓':'不可用 '+(r.missing.join(',')||''))+(r.cooldown_left?' 冷却'+r.cooldown_left+'s':''),r.available);};
+    showProv('Self-test: '+(r.available?'Available ✓':'Unavailable '+(r.missing.join(',')||''))+(r.cooldown_left?' Cooling down '+r.cooldown_left+'s':''),r.available);};
   foot.append(sv,ts);
   c.append(ph,pb,foot);return c;
 }
@@ -587,40 +587,40 @@ async function saveP(name,card,ck){
     if(x.dataset.f==='__dm'){if(x.value)vals.default_model=x.value;}
     else if(x.value)vals[x.dataset.f]=x.value;
   });
-  showProv('保存中…',1);
+  showProv('Saving…',1);
   const r=await apiFetch('/v1/providers/config',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({updates:{[name]:vals}})});
   const j=await r.json();
-  if(!r.ok){showProv('保存失败：'+(j.error&&j.error.message),0);return;}
-  showProv('已保存并热加载 ✓',1);loadProviders();refreshGlobal();
+  if(!r.ok){showProv('Save failed: '+(j.error&&j.error.message),0);return;}
+  showProv('Saved and hot reloaded ✓',1);loadProviders();refreshGlobal();
 }
 function showProv(t,ok){$('provMsg').innerHTML='<div class="msg '+(ok?'ok':'err')+'">'+t+'</div>';}
 
-/* ---------------- 通用 ---------------- */
+/* ---------------- General ---------------- */
 function openLb(s){$('lbImg').src=s;$('lightbox').style.display='flex';}
 $('lightbox').onclick=()=>$('lightbox').style.display='none';
 function fmtT(t){return new Date(t*1000).toLocaleString('zh-CN',{hour12:false});}
 function deb(f,m){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),m);};}
 
-/* ---------------- 接入方与日志 ---------------- */
+/* ---------------- Clients & Logs ---------------- */
 async function loadClients(){
   const j=await(await apiFetch('/v1/clients')).json();
   const box=$('cliCards');box.innerHTML='';
-  $('cliCount').textContent='共 '+j.data.length+' 个接入方';
-  if(!j.data.length){box.innerHTML='<div class="empty" style="grid-column:1/-1">暂无调用记录</div>';return;}
+  $('cliCount').textContent='Total '+j.data.length+' clients';
+  if(!j.data.length){box.innerHTML='<div class="empty" style="grid-column:1/-1">No call records yet</div>';return;}
   j.data.forEach(c=>{
     const d=document.createElement('div');d.className='stat '+(c.online?'s1':'s2');
     d.innerHTML='<div class="n">'+c.count+'</div>'+
       '<div class="t" style="font-weight:650;color:#1f2937">'+esc(c.client)+
       ' <span class="dot '+(c.online?'g':'a')+'"></span></div>'+
-      '<div class="t">成功率 '+c.success_rate+'% · 最近 '+fmtT(c.last_ts)+'</div>'+
-      '<div class="t">'+(c.trusted?'<span style="color:#15803d;font-weight:650">🔒 可信接入方</span>':'<span style="color:#b45309;font-weight:650">⚠ 自报名（可伪造）</span>')+'</div>'+
+      '<div class="t">Success rate '+c.success_rate+'% · Last '+fmtT(c.last_ts)+'</div>'+
+      '<div class="t">'+(c.trusted?'<span style="color:#15803d;font-weight:650">🔒 Trusted client</span>':'<span style="color:#b45309;font-weight:650">⚠ Self-declared (can be spoofed)</span>')+'</div>'+
       '<div class="t">'+c.transports.map(function(t){return '<span class="tbadge '+t+'">'+t+'</span>';}).join(' ')+'</div>';
     box.appendChild(d);
   });
-  // 同步接入方下拉
+  // Sync client dropdown
   const sel=$('logClient');const cur=sel.value;
-  sel.innerHTML='<option value="">全部接入方</option>';
+  sel.innerHTML='<option value="">All clients</option>';
   j.data.forEach(c=>{const o=document.createElement('option');o.value=c.client;o.textContent=c.client;sel.appendChild(o);});
   sel.value=cur;
 }
@@ -633,16 +633,16 @@ async function loadUsage(){
   p.set('limit', $('logLimit').value || 300);
   const j=await(await apiFetch('/v1/usage?'+p.toString())).json();
   const box=$('logTable');
-  if(!j.total){box.innerHTML='<div class="empty">没有匹配日志</div>';return;}
+  if(!j.total){box.innerHTML='<div class="empty">No matching logs</div>';return;}
   let h='<table class="logtable"><thead><tr>'+
-    '<th>时间</th><th>接入方</th><th>通道</th><th>动作</th><th>渠道</th>'+
-    '<th>会话</th><th>状态</th><th>耗时</th><th>prompt</th></tr></thead><tbody>';
+    '<th>Time</th><th>Client</th><th>Channel</th><th>Action</th><th>Channel</th>'+
+    '<th>Session</th><th>Status</th><th>Duration</th><th>prompt</th></tr></thead><tbody>';
   j.data.forEach(r=>{
     h+='<tr><td>'+fmtT(r.ts)+'</td><td style="font-weight:650">'+esc(r.client)+'</td>'+
       '<td><span class="tbadge '+(r.transport||'')+'">'+(r.transport||'-')+'</span></td>'+
       '<td>'+(r.action||'-')+'</td><td>'+(r.provider||'-')+'</td>'+
       '<td>'+(r.session_id||'-')+'</td>'+
-      '<td class="'+(r.status==='success'?'st-ok':'st-fail')+'">'+(r.status==='success'?'成功':'失败')+'</td>'+
+      '<td class="'+(r.status==='success'?'st-ok':'st-fail')+'">'+(r.status==='success'?'Success':'Failed')+'</td>'+
       '<td>'+(r.duration_ms?r.duration_ms+'ms':'-')+'</td>'+
       '<td class="prompt" title="'+esc(r.prompt||'')+'">'+esc(r.prompt||'')+'</td></tr>';
   });
@@ -663,13 +663,13 @@ $('logAutoRefresh').onchange=function(){
     clearInterval(_logAutoTimer);_logAutoTimer=null;
   }
 };
-$('logClear').onclick=function(){$('logTable').innerHTML='<div class="empty">已清空显示（不删除服务端日志）</div>';};
+$('logClear').onclick=function(){$('logTable').innerHTML='<div class="empty">Display cleared (server logs not deleted)</div>';};
 $('adminTokenInput').addEventListener('input', function(){
   if(this.value.trim()) localStorage.setItem('imgw_admin_token', this.value.trim());
   else localStorage.removeItem('imgw_admin_token');
 });
 $('adminTokenInput').addEventListener('change', function(){
-  // token 变更后刷新当前视图数据
+  // Refresh current view data after token change
   var active = document.querySelector('.view.on');
   if(!active) return;
   var id = active.id;

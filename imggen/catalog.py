@@ -1,58 +1,58 @@
-"""渠道目录：每个第三方生图服务的元数据（中文名、计费类型、凭证字段、官网）。
+"""Channel catalog: metadata for each third-party image generation service (name, billing type, credential fields, official website).
 
-供「渠道管理」页做状态汇总与在线配置，也供历史记录标注"哪家渠道出的图"。
+Used by the "Channel Management" page for status summary and online configuration, and by history records to label "which channel produced the image".
 """
 
-# type: free 免费 / quota 免费额度 / cheap 低价 / paid 付费 / relay 中转
+# type: free / quota free quota / cheap low price / paid / relay relay
 CATALOG = {
     "pollinations": {
         "label": "Pollinations", "type": "free",
         "cred": [], "url": "https://pollinations.ai",
-        "desc": "HTTP 直出、无需 key，默认保底通道"},
+        "desc": "Direct HTTP output, no key needed, default fallback channel"},
     "gemini": {
         "label": "Google Gemini", "type": "quota",
         "cred": [{"f": "api_key", "label": "AI Studio API Key"}],
         "url": "https://aistudio.google.com/apikey",
-        "desc": "Nano Banana，文字渲染强"},
+        "desc": "Nano Banana, strong text rendering"},
     "siliconflow": {
-        "label": "硅基流动", "type": "cheap",
+        "label": "SiliconFlow", "type": "cheap",
         "cred": [{"f": "api_key", "label": "SiliconFlow Key"}],
         "url": "https://siliconflow.cn",
-        "desc": "FLUX.2 flex / Z-Image，约 ¥0.035 起"},
+        "desc": "FLUX.2 flex / Z-Image, from ~¥0.035"},
     "openai": {
         "label": "OpenAI", "type": "paid",
         "cred": [{"f": "api_key", "label": "OpenAI Key"}],
         "url": "https://platform.openai.com",
         "desc": "gpt-image-1"},
     "relay": {
-        "label": "自定义中转", "type": "relay",
-        "cred": [{"f": "api_key", "label": "中转 Key（可选）"}],
+        "label": "Custom Relay", "type": "relay",
+        "cred": [{"f": "api_key", "label": "Relay Key (optional)"}],
         "url": "",
-        "desc": "任意 OpenAI 兼容第三方"},
+        "desc": "Any OpenAI-compatible third party"},
     "bailian": {
-        "label": "阿里百炼", "type": "cheap",
+        "label": "DashScope", "type": "cheap",
         "cred": [{"f": "api_key", "label": "DashScope Key"}],
         "url": "https://bailian.console.aliyun.com",
-        "desc": "通义万相 / Z-Image，新用户送额度"},
+        "desc": "Tongyi Wanxiang / Z-Image, new users get free quota"},
     "hf_space": {
         "label": "HuggingFace Space", "type": "free",
         "cred": [{"f": "hf_token", "label": "HF Token", "optional": True}],
         "url": "https://huggingface.co/spaces",
-        "desc": "云端跑 FLUX/SD 开源模型，token 可选"},
+        "desc": "Run FLUX/SD open-source models on cloud, token optional"},
     "perchance": {
         "label": "Perchance", "type": "free",
         "cred": [], "url": "https://perchance.org",
-        "desc": "免费逆向通道，尽力而为"},
+        "desc": "Free reverse-proxy channel, best effort"},
     "bing": {
         "label": "Bing Image Creator", "type": "free",
         "cred": [{"f": "cookie_u", "label": "Cookie _U"}],
         "url": "https://www.bing.com/images/create",
-        "desc": "DALL-E 3，需登录后的 _U"},
+        "desc": "DALL-E 3, requires logged-in _U"},
 }
 
 TYPE_LABEL = {
-    "free": "免费", "quota": "免费额度", "cheap": "低价",
-    "paid": "付费", "relay": "中转",
+    "free": "Free", "quota": "Free Quota", "cheap": "Low Price",
+    "paid": "Paid", "relay": "Relay",
 }
 
 

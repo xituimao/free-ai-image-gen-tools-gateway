@@ -1,13 +1,13 @@
-"""会话化存储。
+"""Session-based storage.
 
-统一资源根（server.storage_dir，本机/云均可配绝对路径），其下按会话分子目录：
+Unified resource root (server.storage_dir, absolute path configurable on local or cloud), with per-session subdirectories under it:
   storage/sessions/<sid>/images/*.jpg|png|webp
   storage/sessions/<sid>/history.jsonl
   storage/sessions/<sid>/meta.json
 
-- 每次生成（无论 b64/url）都把图片归档进当前会话并追加一条历史；
-- 上传图片同样归入当前会话；
-- 历史支持按提示词/渠道搜索与多种排序。
+- Every generation (regardless of b64/url) archives images into the current session and appends a history record;
+- Uploaded images are also filed into the current session;
+- History supports prompt/channel search and multiple sort orders.
 """
 import json
 import os
@@ -41,12 +41,12 @@ class Storage:
         os.makedirs(self.sdir, exist_ok=True)
         self._paths(DEFAULT_SID)
 
-    # ---------- 内部工具 ----------
+    # ---------- Internal tools ----------
 
     def safe_sid(self, sid):
         sid = sid or DEFAULT_SID
         if not SAFE_SID.match(str(sid)):
-            raise StorageError("非法 session_id（仅允许字母/数字/_/-，最长64）")
+            raise StorageError("Invalid session_id (only letters/numbers/_- allowed, max 64 chars)")
         return sid
 
     def _paths(self, sid):
@@ -77,7 +77,7 @@ class Storage:
         with open(hp, "a", encoding="utf-8") as f:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
-    # ---------- 会话管理 ----------
+    # ---------- Session management ----------
 
     def create_session(self, title=None, sid=None):
         sid = self.safe_sid(sid) if sid else uuid.uuid4().hex[:12]
@@ -116,10 +116,10 @@ class Storage:
         out.sort(key=lambda m: m.get("last_ts", 0), reverse=True)
         return out
 
-    # ---------- 归档 ----------
+    # ---------- archiving -----------
 
     def archive_generation(self, sid, images, meta):
-        """images: list[bytes]；meta: prompt/negative/width/height/seed/provider/model。"""
+        """images: list[bytes]; meta: prompt/negative/width/height/seed/provider/model."""
         _, img, hp, _ = self._paths(sid)
         files, total = [], 0
         for b in images:
@@ -145,21 +145,21 @@ class Storage:
         if ext == "jpeg":
             ext = "jpg"
         if ext not in ALLOWED_EXT:
-            raise StorageError("仅支持 jpg/png/webp")
+            raise StorageError("Only jpg/png/webp supported")
         _, img, hp, _ = self._paths(sid)
         fn = "up_%s.%s" % (uuid.uuid4().hex[:10], ext)
         with open(os.path.join(img, fn), "wb") as f:
             f.write(data)
         rec = {
             "id": uuid.uuid4().hex[:10], "ts": int(time.time()), "source": "upload",
-            "prompt": caption, "provider": "(本地上传)", "model": "upload",
+            "prompt": caption,             "provider": "(local upload)", "model": "upload",
             "width": None, "height": None, "n": 1, "seed": None,
             "files": [fn], "bytes": len(data),
         }
         self._append(hp, rec)
         return rec
 
-    # ---------- 历史读取 / 搜索 / 排序 ----------
+    # ---------- history read / search / sort -----------
 
     def read_history(self, sid):
         _, _, hp, _ = self._paths(sid)
@@ -200,7 +200,7 @@ class Storage:
             out = out[:limit]
         return out
 
-    # ---------- 图片访问 ----------
+    # ---------- image access ----------
 
     def image_path(self, sid, name):
         _, img, _, _ = self._paths(sid)
